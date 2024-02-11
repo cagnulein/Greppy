@@ -4,13 +4,13 @@ import UniformTypeIdentifiers
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView(fileContent: "To start using the app, \nfirst locate the icon positioned \nat the bottom left corner \nof your screen. This icon \nis designed for opening files \nand is your gateway to \naccessing the documents stored on \nyour device. Once you tap \non this icon, you will \nbe presented with a list \nof files\n\nFrom this list, select the \nfile you wish to explore. \nUpon selection, the file will \nopen within the app, displaying \nits contents in a readable \nformat. Now, to search for \nspecific content within the opened \nfile, direct your attention to \nthe text box located at \nthe top of the screen.\n\nThis text box is your \nsearch tool. Enter the keywords \nor phrases you're looking for, \nand the app will highlight \nand navigate you through the \noccurrences of the searched terms \nwithin the document. This feature \nallows for an efficient and \neffective way to find the \ninformation you need without manually \nscouring the entire document.\n\nThe combination of these functionalities—opening \nfiles and searching within them—makes \nthis app an invaluable tool \nfor anyone who needs to \nwork with text documents efficiently. \nWhether you are a student, \na professional, or just someone \nwho handles a lot of \ndocuments, this app simplifies the \nprocess of finding the exact \ninformation you need, when you \nneed it.")
+        ContentView(fileContent: "To start using the app, first locate the icon positioned at the bottom left corner of your\nscreen. This icon is designed for opening files and is your gateway to accessing the documents stored\non your device. Once you tap on this icon, you will be presented with a list of\nfiles. From this list, select the file you wish to explore. Upon selection, the file will\nopen within the app, displaying its contents in a readable format. Now, to search for specific\ncontent within the opened file, direct your attention to the text box located at the top\nof the screen. This text box is your search tool. Enter the keywords or phrases you're looking\nfor, and the app will highlight and navigate you through the occurrences of the searched terms\nwithin the document. This feature allows for an efficient and effective way to find the information\nyou need without manually scouring the entire document.\n\nThe combination of these functionalities—opening files and searching within them—makes this app an invaluable tool\nfor anyone who needs to work with text documents efficiently. Whether you are a student, a professional,\nor just someone who handles a lot of documents, this app simplifies the process of finding the exact\ninformation you need, when you need it.\n")
 
     }
 }
 
 struct ContentView: View {
-    @State public var fileContent: String = "To start using the app, \nfirst locate the icon positioned \nat the bottom left corner \nof your screen. This icon \nis designed for opening files \nand is your gateway to \naccessing the documents stored on \nyour device. Once you tap \non this icon, you will \nbe presented with a list \nof files\n\nFrom this list, select the \nfile you wish to explore. \nUpon selection, the file will \nopen within the app, displaying \nits contents in a readable \nformat. Now, to search for \nspecific content within the opened \nfile, direct your attention to \nthe text box located at \nthe top of the screen.\n\nThis text box is your \nsearch tool. Enter the keywords \nor phrases you're looking for, \nand the app will highlight \nand navigate you through the \noccurrences of the searched terms \nwithin the document. This feature \nallows for an efficient and \neffective way to find the \ninformation you need without manually \nscouring the entire document.\n\nThe combination of these functionalities—opening \nfiles and searching within them—makes \nthis app an invaluable tool \nfor anyone who needs to \nwork with text documents efficiently. \nWhether you are a student, \na professional, or just someone \nwho handles a lot of \ndocuments, this app simplifies the \nprocess of finding the exact \ninformation you need, when you \nneed it."
+    @State public var fileContent: String = "To start using the app, first locate the icon positioned at the bottom left corner of your\nscreen. This icon is designed for opening files and is your gateway to accessing the documents stored\non your device. Once you tap on this icon, you will be presented with a list of\nfiles. From this list, select the file you wish to explore. Upon selection, the file will\nopen within the app, displaying its contents in a readable format. Now, to search for specific\ncontent within the opened file, direct your attention to the text box located at the top\nof the screen. This text box is your search tool. Enter the keywords or phrases you're looking\nfor, and the app will highlight and navigate you through the occurrences of the searched terms\nwithin the document. This feature allows for an efficient and effective way to find the information\nyou need without manually scouring the entire document.\n\nThe combination of these functionalities—opening files and searching within them—makes this app an invaluable tool\nfor anyone who needs to work with text documents efficiently. Whether you are a student, a professional,\nor just someone who handles a lot of documents, this app simplifies the process of finding the exact\ninformation you need, when you need it.\n"
     @State private var searchText: String = ""
     @State private var searchResults: String = ""
     @State private var showingFilePicker = false
@@ -49,22 +49,30 @@ struct ContentView: View {
             List {
                 ForEach(textRows, id: \.self) { row in
                     HStack {
-                        Text(row).onLongPressGesture {
-                            self.selectedText = row // Imposta il testo selezionato sulla riga toccata
-                            self.showingEditor = true // Mostra l'editor
-                        }
-                        Spacer() // Crea spazio tra il testo e l'icona
-                        Button(action: {
-                            showToast = true
-                            // Nascondi il toast dopo 2 secondi
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                showToast = false
+                        Text(row)
+                        Spacer()
+                        // VStack per le icone allineate verticalmente
+                        VStack {
+                            Button(action: {
+                                self.selectedText = row // Imposta il testo selezionato sulla riga toccata
+                                self.showingEditor = true // Mostra l'editor
+                            }) {
+                                Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
+                                    .foregroundColor(.blue)
                             }
-                            // Copia il contenuto della riga negli appunti
-                            UIPasteboard.general.string = row
-                        }) {
-                            Image(systemName: "doc.on.clipboard") // Usa un'icona che suggerisce la copia
-                                .foregroundColor(.blue) // Colore dell'icona
+                            Spacer()
+                            Button(action: {
+                                showToast = true
+                                // Nascondi il toast dopo 2 secondi
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    showToast = false
+                                }
+                                // Copia il contenuto della riga negli appunti
+                                UIPasteboard.general.string = row
+                            }) {
+                                Image(systemName: "doc.on.clipboard") // Icona per l'azione di copia
+                                    .foregroundColor(.blue)
+                            }
                         }
                     }
                     .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
