@@ -49,7 +49,7 @@ struct ContentView: View {
             List {
                 ForEach(textRows, id: \.self) { row in
                     HStack {
-                        Text(row).onTapGesture {
+                        Text(row).onLongPressGesture {
                             self.selectedText = row // Imposta il testo selezionato sulla riga toccata
                             self.showingEditor = true // Mostra l'editor
                         }
