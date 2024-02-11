@@ -17,35 +17,34 @@ struct ContentView: View {
     @State private var showToast: Bool = false
     @State private var showingEditor: Bool = false // Controlla se mostrare l'editor
     @State private var selectedText: String? = nil // Traccia il testo selezionato
+    @ObservedObject var appState = AppState.shared
     
     private var textRows: [String] {
             searchText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
         }
 
-    
-
         var body: some View {
             VStack {
                 if showingEditor, let selectedText = selectedText {
-                                VStack {
-                                    HStack {
-                                        Spacer() // Spinge l'icona tutto a destra
-                                        Button(action: {
-                                            // Azione per chiudere l'editor
-                                            self.showingEditor = false
-                                        }) {
-                                            Image(systemName: "xmark.circle.fill") // Icona di chiusura
-                                                .foregroundColor(.gray)
-                                                .padding()
-                                        }
-                                    }
-                                    TextEditor(text: .constant(selectedText))
-                                        .frame(height: 100) // Altezza dell'editor
-                                        .border(Color.gray, width: 1) // Bordo dell'editor
-                                }
-                                .transition(.slide) // Aggiunge un'animazione quando l'editor appare/scompare
-                                .padding()
+                    VStack {
+                        HStack {
+                            Spacer() // Spinge l'icona tutto a destra
+                            Button(action: {
+                                // Azione per chiudere l'editor
+                                self.showingEditor = false
+                            }) {
+                                Image(systemName: "xmark.circle.fill") // Icona di chiusura
+                                    .foregroundColor(.gray)
+                                    .padding()
                             }
+                        }
+                        TextEditor(text: .constant(selectedText))
+                            .frame(height: 100) // Altezza dell'editor
+                            .border(Color.gray, width: 1) // Bordo dell'editor
+                    }
+                    .transition(.slide) // Aggiunge un'animazione quando l'editor appare/scompare
+                    .padding()
+                }
             List {
                 ForEach(textRows, id: \.self) { row in
                     HStack {
@@ -60,24 +59,23 @@ struct ContentView: View {
                                 Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
                                     .foregroundColor(.blue)
                             }
-                            Spacer()
-                            Button(action: {
-                                showToast = true
-                                // Nascondi il toast dopo 2 secondi
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    showToast = false
-                                }
-                                // Copia il contenuto della riga negli appunti
-                                UIPasteboard.general.string = row
-                            }) {
-                                Image(systemName: "doc.on.clipboard") // Icona per l'azione di copia
-                                    .foregroundColor(.blue)
-                            }
                         }
                     }
                     .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
                 }
             }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
+                    .onOpenURL(perform: { url in
+                        fileContent = "Loading..."
+                        // Esegui la lettura del file in background
+                          DispatchQueue.global(qos: .userInitiated).async {
+                              let loadedContent = loadFileContent(from: url)
+                              
+                              // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
+                              DispatchQueue.main.async {
+                                  fileContent = loadedContent
+                              }
+                          }
+                    })
 
             if showToast {
                    Text("Copied to clipboard")
@@ -125,6 +123,16 @@ struct ContentView: View {
     private func filteredContent() -> [String] {
         let lines = fileContent.components(separatedBy: "\n")
         return lines.filter { $0.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    func loadFileContent(from url: URL) -> String {
+        // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
+        do {
+            return try String(contentsOf: url)
+        } catch {
+            print("Errore nella lettura del file: \(error)")
+            return "Errore nella lettura del file."
+        }
     }
 }
 
