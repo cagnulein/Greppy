@@ -19,9 +19,10 @@ struct ContentView: View {
     @State private var selectedText: String? = nil // Traccia il testo selezionato
     @ObservedObject var appState = AppState.shared
     
-    private var textRows: [String] {
-            searchText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
-        }
+    @State private var textRows: [String] = []
+    @State private var isLoading = false
+
+    @State private var loadedItemCount: Int = 0
 
         var body: some View {
             VStack {
@@ -45,24 +46,24 @@ struct ContentView: View {
                     .transition(.slide) // Aggiunge un'animazione quando l'editor appare/scompare
                     .padding()
                 }
-            List {
-                ForEach(textRows, id: \.self) { row in
-                    HStack {
-                        Text(row)
-                        Spacer()
-                        // VStack per le icone allineate verticalmente
-                        VStack {
-                            Button(action: {
-                                self.selectedText = row // Imposta il testo selezionato sulla riga toccata
-                                self.showingEditor = true // Mostra l'editor
-                            }) {
-                                Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
-                                    .foregroundColor(.blue)
-                            }
-                        }
+            List(textRows.indices, id: \.self) { index in
+                HStack {
+                    Text(textRows[index])
+                    .onAppear {
+                        loadMoreContentIfNeeded(currentItem: textRows[index])
                     }
-                    .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
-                }
+                    Spacer()
+                    // VStack per le icone allineate verticalmente
+                    VStack {
+                        Button(action: {
+                            self.selectedText = row // Imposta il testo selezionato sulla riga toccata
+                            self.showingEditor = true // Mostra l'editor
+                        }) {
+                            Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
+                                .foregroundColor(.blue)
+                        }
+                    }                    }
+                    .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone                    
             }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
                     .onOpenURL(perform: { url in
                         fileContent = "Loading..."
@@ -134,6 +135,40 @@ struct ContentView: View {
             return "Errore nella lettura del file."
         }
     }
+
+    func loadMoreContentIfNeeded(currentItem item: String?) {
+        guard let item = item else {
+            loadInitialContent()
+            return
+        }
+        
+        let thresholdIndex = items.index(items.endIndex, offsetBy: -5)
+        if items.firstIndex(where: { $0 == item }) == thresholdIndex {
+            loadMoreContent()
+        }
+    }
+
+    func loadInitialContent() {
+        let lines = fileContent.components(separatedBy: "\n")
+        let filteredLines = lines.filter { $0.localizedCaseInsensitiveContains(searchText) }
+        self.loadedItemCount += 20
+        return Array(filteredLines.prefix(20))
+    }
+
+    func loadMoreContent() {
+        guard !isLoading else { return }
+        isLoading = true
+        
+        // Simula il caricamento di più dati
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            let lines = fileContent.components(separatedBy: "\n")
+            let filteredLines = lines.filter { $0.localizedCaseInsensitiveContains(searchText) }
+            let results = Array(filteredLines.dropFirst(20).prefix(20))
+            self.loadedItemCount += 20
+            self.items.append(contentsOf: results)
+            self.isLoading = false
+        }
+    }    
 }
 
 struct DocumentPicker: UIViewControllerRepresentable {
