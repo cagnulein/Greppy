@@ -21,7 +21,7 @@ struct ContentView: View {
     
     private var textRows: [String] {
             let allRows = searchText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
-            if(allRows.count > 10000) {
+            if(allRows.count > 2000) {
                 // Mostra il toast
                 self.showToast = true
                 
@@ -30,7 +30,7 @@ struct ContentView: View {
                     self.showToast = false
                 }
             }
-            return Array(allRows.prefix(10000))
+            return Array(allRows.prefix(2000))
         }
 
         var body: some View {
@@ -101,7 +101,7 @@ struct ContentView: View {
                                .padding()
 
                     TextField("Search", text: $searchText)
-                                    .padding()
+                        .padding()
                     
                     Button(action: {
                         // Azione per chiudere l'editor
@@ -136,7 +136,18 @@ struct ContentView: View {
     }
     private func filteredContent() -> [String] {
         let lines = fileContent.components(separatedBy: "\n")
-        return lines.filter { $0.localizedCaseInsensitiveContains(searchText) }
+        var filteredLines = [String]()
+
+        for line in lines {
+            if line.localizedCaseInsensitiveContains(searchText) {
+                filteredLines.append(line)
+                if filteredLines.count == 2000 {
+                    break
+                }
+            }
+        }
+
+        return filteredLines
     }
     
     func loadFileContent(from url: URL) -> String {
