@@ -18,11 +18,12 @@ struct ContentView: View {
     @State private var showingEditor: Bool = false // Controlla se mostrare l'editor
     @State private var selectedText: String? = nil // Traccia il testo selezionato
     @State private var submittedText: String = ""
+    @State private var requiredToast: Bool = true
     @ObservedObject var appState = AppState.shared
     
     private var textRows: [String] {
             let allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
-            if(allRows.count > 2000) {
+            if(allRows.count >= 2000 && requiredToast) {
                 DispatchQueue.global(qos: .userInitiated).async { [self] in
                     // Mostra il toast
                     self.showToast = true
@@ -33,6 +34,7 @@ struct ContentView: View {
                     }
                 }
             }
+            requiredToast = false
             return Array(allRows.prefix(2000))
         }
     
@@ -108,6 +110,7 @@ struct ContentView: View {
                                 .accessibilityIdentifier("searchBox")
                                 .submitLabel(.done) // Imposta la label del tasto di invio a "Done"
                                 .onSubmit {
+                                    requiredToast = true
                                     // Questa azione viene eseguita quando l'utente preme "Done"
                                     submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
                                     // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
@@ -119,6 +122,7 @@ struct ContentView: View {
                         // Azione per chiudere l'editor
                         searchText = ""
                         submittedText = ""
+                        requiredToast = true
                     }) {
                         Image(systemName: "xmark.circle.fill") // Icona di chiusura
                             .foregroundColor(.gray)
@@ -155,10 +159,6 @@ struct ContentView: View {
             if line.localizedCaseInsensitiveContains(submittedText) {
                 filteredLines.append(line)
                 if filteredLines.count == 2000 {
-                    showToast = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        self.showToast = false
-                    }
                     break
                 }
             }
