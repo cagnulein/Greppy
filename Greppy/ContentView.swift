@@ -17,10 +17,11 @@ struct ContentView: View {
     @State private var showToast: Bool = false
     @State private var showingEditor: Bool = false // Controlla se mostrare l'editor
     @State private var selectedText: String? = nil // Traccia il testo selezionato
+    @State private var submittedText: String = ""
     @ObservedObject var appState = AppState.shared
     
     private var textRows: [String] {
-            let allRows = searchText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
+            let allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
             if(allRows.count > 2000) {
                 // Mostra il toast
                 self.showToast = true
@@ -32,8 +33,8 @@ struct ContentView: View {
             }
             return Array(allRows.prefix(2000))
         }
-
-        var body: some View {
+    
+    var body: some View {
             
             ZStack {
                 VStack {
@@ -101,11 +102,21 @@ struct ContentView: View {
                                .padding()
 
                     TextField("Search", text: $searchText)
-                        .padding().accessibilityIdentifier("searchBox")
+                                .padding()
+                                .accessibilityIdentifier("searchBox")
+                                .submitLabel(.done) // Imposta la label del tasto di invio a "Done"
+                                .onSubmit {
+                                    // Questa azione viene eseguita quando l'utente preme "Done"
+                                    submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
+                                    // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
+                                }
+                                .textInputAutocapitalization(.none) // Opzionale: disabilita l'autocapitalizzazione
+                                .disableAutocorrection(true) // Opzionale: disabilita l'autocorrezione
                     
                     Button(action: {
                         // Azione per chiudere l'editor
                         searchText = ""
+                        submittedText = ""
                     }) {
                         Image(systemName: "xmark.circle.fill") // Icona di chiusura
                             .foregroundColor(.gray)
@@ -139,7 +150,7 @@ struct ContentView: View {
         var filteredLines = [String]()
 
         for line in lines {
-            if line.localizedCaseInsensitiveContains(searchText) {
+            if line.localizedCaseInsensitiveContains(submittedText) {
                 filteredLines.append(line)
                 if filteredLines.count == 2000 {
                     break
