@@ -145,7 +145,7 @@ struct ContentView: View {
             return try String(contentsOf: url)
         } catch {
             print("Errore nella lettura del file: \(error)")
-            return "Errore nella lettura del file."
+            return "Errore nella lettura del file \(error.localizedDescription)"
         }
     }
 }
