@@ -36,6 +36,89 @@ struct ContentView: View {
         var body: some View {
             
             ZStack {
+                VStack {
+                    if showingEditor, let selectedText = selectedText {
+                        VStack {
+                            HStack {
+                                Spacer() // Spinge l'icona tutto a destra
+                                Button(action: {
+                                    // Azione per chiudere l'editor
+                                    self.showingEditor = false
+                                }) {
+                                    Image(systemName: "xmark.circle.fill") // Icona di chiusura
+                                        .foregroundColor(.gray)
+                                        .padding()
+                                }
+                            }
+                            TextEditor(text: .constant(selectedText))
+                                .frame(height: 100) // Altezza dell'editor
+                                .border(Color.gray, width: 1) // Bordo dell'editor
+                        }
+                        .transition(.slide) // Aggiunge un'animazione quando l'editor appare/scompare
+                        .padding()
+                    }
+                List {
+                    ForEach(textRows, id: \.self) { row in
+                        HStack {
+                            Text(row)
+                            Spacer()
+                            // VStack per le icone allineate verticalmente
+                            VStack {
+                                Button(action: {
+                                    self.selectedText = row // Imposta il testo selezionato sulla riga toccata
+                                    self.showingEditor = true // Mostra l'editor
+                                }) {
+                                    Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
+                    }
+                }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
+                        .onOpenURL(perform: { url in
+                            fileContent = "Loading..."
+                            // Esegui la lettura del file in background
+                              DispatchQueue.global(qos: .userInitiated).async {
+                                  let loadedContent = loadFileContent(from: url)
+                                  
+                                  // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
+                                  DispatchQueue.main.async {
+                                      fileContent = loadedContent
+                                  }
+                              }
+                        })
+                
+                HStack {
+                    Button(action: {
+                                   showingFilePicker = true
+                               }) {
+                                   Image(systemName: "paperplane") // Esempio di icona di apertura file
+                                       .resizable() // Rendi l'immagine resizable
+                                       .aspectRatio(contentMode: .fit) // Mantiene le proporzioni dell'immagine
+                                       .frame(width: 24, height: 24) // Imposta dimensioni dell'icona
+                               }
+                               .padding()
+
+                    TextField("Search", text: $searchText)
+                                    .padding()
+                    
+                    Button(action: {
+                        // Azione per chiudere l'editor
+                        searchText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill") // Icona di chiusura
+                            .foregroundColor(.gray)
+                            .padding()
+                    }
+
+                }
+
+                // Mostra il picker quando showingFilePicker è true
+                .sheet(isPresented: $showingFilePicker) {
+                    DocumentPicker(fileContent: $fileContent)
+                }
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 // Toast message
                 if showToast {
                     Text("Too many lines, grep more...")
@@ -47,92 +130,9 @@ struct ContentView: View {
                         .transition(.opacity)
                         .animation(.easeInOut, value: showToast)
                 }
+
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            
-            VStack {
-                if showingEditor, let selectedText = selectedText {
-                    VStack {
-                        HStack {
-                            Spacer() // Spinge l'icona tutto a destra
-                            Button(action: {
-                                // Azione per chiudere l'editor
-                                self.showingEditor = false
-                            }) {
-                                Image(systemName: "xmark.circle.fill") // Icona di chiusura
-                                    .foregroundColor(.gray)
-                                    .padding()
-                            }
-                        }
-                        TextEditor(text: .constant(selectedText))
-                            .frame(height: 100) // Altezza dell'editor
-                            .border(Color.gray, width: 1) // Bordo dell'editor
-                    }
-                    .transition(.slide) // Aggiunge un'animazione quando l'editor appare/scompare
-                    .padding()
-                }
-            List {
-                ForEach(textRows, id: \.self) { row in
-                    HStack {
-                        Text(row)
-                        Spacer()
-                        // VStack per le icone allineate verticalmente
-                        VStack {
-                            Button(action: {
-                                self.selectedText = row // Imposta il testo selezionato sulla riga toccata
-                                self.showingEditor = true // Mostra l'editor
-                            }) {
-                                Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
-                }
-            }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
-                    .onOpenURL(perform: { url in
-                        fileContent = "Loading..."
-                        // Esegui la lettura del file in background
-                          DispatchQueue.global(qos: .userInitiated).async {
-                              let loadedContent = loadFileContent(from: url)
-                              
-                              // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
-                              DispatchQueue.main.async {
-                                  fileContent = loadedContent
-                              }
-                          }
-                    })
-            
-            HStack {
-                Button(action: {
-                               showingFilePicker = true
-                           }) {
-                               Image(systemName: "paperplane") // Esempio di icona di apertura file
-                                   .resizable() // Rendi l'immagine resizable
-                                   .aspectRatio(contentMode: .fit) // Mantiene le proporzioni dell'immagine
-                                   .frame(width: 24, height: 24) // Imposta dimensioni dell'icona
-                           }
-                           .padding()
-
-                TextField("Search", text: $searchText)
-                                .padding()
-                
-                Button(action: {
-                    // Azione per chiudere l'editor
-                    searchText = ""
-                }) {
-                    Image(systemName: "xmark.circle.fill") // Icona di chiusura
-                        .foregroundColor(.gray)
-                        .padding()
-                }
-
-            }
-
-            // Mostra il picker quando showingFilePicker è true
-            .sheet(isPresented: $showingFilePicker) {
-                DocumentPicker(fileContent: $fileContent)
-            }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     private func filteredContent() -> [String] {
         let lines = fileContent.components(separatedBy: "\n")
