@@ -70,7 +70,7 @@ struct ContentView: View {
                                 }) {
                                     Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
                                         .foregroundColor(.blue)
-                                }
+                                }.accessibilityIdentifier("buttonShowingEditor")
                             }
                         }
                         .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
@@ -101,7 +101,7 @@ struct ContentView: View {
                                .padding()
 
                     TextField("Search", text: $searchText)
-                        .padding()
+                        .padding().accessibilityIdentifier("searchBox")
                     
                     Button(action: {
                         // Azione per chiudere l'editor

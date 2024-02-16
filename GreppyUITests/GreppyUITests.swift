@@ -30,6 +30,34 @@ final class GreppyUITests: XCTestCase {
         // Use XCTAssert and related functions to verify your tests produce the correct results.
     }
 
+    func testTextField() throws {
+         let app = XCUIApplication()
+         app.launch()
+        
+         // Trova la TextField e digita il testo
+         let textField = app.textFields["searchBox"]
+         textField.tap() // Metti il focus sulla TextField
+         textField.typeText("Box")
+         
+         // Aggiungi qui le asserzioni per verificare il comportamento atteso
+     }
+    
+    func testTextFieldAndButton() throws {
+         let app = XCUIApplication()
+         app.launch()
+        
+         // Trova la TextField e digita il testo
+         let textField = app.textFields["searchBox"]
+         textField.tap() // Metti il focus sulla TextField
+         textField.typeText("Box")
+         
+         // Trova il Button e clicca
+         let button = app.buttons["buttonShowingEditor"]
+         button.tap()
+         
+         // Aggiungi qui le asserzioni per verificare il comportamento atteso
+     }
+    
     func testLaunchPerformance() throws {
         if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {
             // This measures how long it takes to launch your application.
