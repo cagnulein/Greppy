@@ -23,12 +23,14 @@ struct ContentView: View {
     private var textRows: [String] {
             let allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
             if(allRows.count > 2000) {
-                // Mostra il toast
-                self.showToast = true
-                
-                // Nascondi il toast dopo 3 secondi
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    self.showToast = false
+                DispatchQueue.global(qos: .userInitiated).async { [self] in
+                    // Mostra il toast
+                    self.showToast = true
+                    
+                    // Nascondi il toast dopo 3 secondi
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        self.showToast = false
+                    }
                 }
             }
             return Array(allRows.prefix(2000))
@@ -153,6 +155,10 @@ struct ContentView: View {
             if line.localizedCaseInsensitiveContains(submittedText) {
                 filteredLines.append(line)
                 if filteredLines.count == 2000 {
+                    showToast = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        self.showToast = false
+                    }
                     break
                 }
             }
