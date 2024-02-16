@@ -14,28 +14,15 @@ struct ContentView: View {
     @State private var searchText: String = ""
     @State private var searchResults: String = ""
     @State private var showingFilePicker = false
-    @State private var showToast: Bool = false
     @State private var showingEditor: Bool = false // Controlla se mostrare l'editor
     @State private var selectedText: String? = nil // Traccia il testo selezionato
     @State private var submittedText: String = ""
-    @State private var requiredToast: Bool = true
     @ObservedObject var appState = AppState.shared
+    @State private var maxLine: Int = 2000
     
     private var textRows: [String] {
             let allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
-            if(allRows.count >= 2000 && requiredToast) {
-                DispatchQueue.global(qos: .userInitiated).async { [self] in
-                    // Mostra il toast
-                    self.showToast = true
-                    
-                    // Nascondi il toast dopo 3 secondi
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        self.showToast = false
-                    }
-                }
-            }
-            requiredToast = false
-            return Array(allRows.prefix(2000))
+            return Array(allRows.prefix(maxLine))
         }
     
     var body: some View {
@@ -110,7 +97,6 @@ struct ContentView: View {
                                 .accessibilityIdentifier("searchBox")
                                 .submitLabel(.done) // Imposta la label del tasto di invio a "Done"
                                 .onSubmit {
-                                    requiredToast = true
                                     // Questa azione viene eseguita quando l'utente preme "Done"
                                     submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
                                     // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
@@ -122,7 +108,6 @@ struct ContentView: View {
                         // Azione per chiudere l'editor
                         searchText = ""
                         submittedText = ""
-                        requiredToast = true
                     }) {
                         Image(systemName: "xmark.circle.fill") // Icona di chiusura
                             .foregroundColor(.gray)
@@ -137,7 +122,7 @@ struct ContentView: View {
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 // Toast message
-                if showToast {
+                if textRows.count >= maxLine {
                     Text("Too many lines, grep more...")
                         .padding()
                         .background(Color.black.opacity(0.7))
@@ -145,9 +130,8 @@ struct ContentView: View {
                         .cornerRadius(20)
                         // Aggiusta la posizione e l'animazione come preferisci
                         .transition(.opacity)
-                        .animation(.easeInOut, value: showToast)
+                        .animation(.easeInOut, value: textRows.count >= maxLine)
                 }
-
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -158,7 +142,7 @@ struct ContentView: View {
         for line in lines {
             if line.localizedCaseInsensitiveContains(submittedText) {
                 filteredLines.append(line)
-                if filteredLines.count == 2000 {
+                if filteredLines.count == maxLine {
                     break
                 }
             }
