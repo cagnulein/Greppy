@@ -19,15 +19,19 @@ struct ContentView: View {
     @State private var submittedText: String = ""
     @ObservedObject var appState = AppState.shared
     @State private var maxLine: Int = 2000
+    @State private var messageMaxLine: String = "!! RESULTS LIMITED TO 2000 DUE TO MEMORY FOOTPRINT. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
     
     private var textRows: [String] {
-            let allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
-            return Array(allRows.prefix(maxLine))
+        var allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
+        print(allRows.count)
+        allRows = Array(allRows.prefix(maxLine))
+        if(allRows.count >= maxLine) {
+            allRows.append(messageMaxLine)
         }
+        return allRows
+    }
     
     var body: some View {
-            
-            ZStack {
                 VStack {
                     if showingEditor, let selectedText = selectedText {
                         VStack {
@@ -52,7 +56,7 @@ struct ContentView: View {
                 List {
                     ForEach(textRows, id: \.self) { row in
                         HStack {
-                            Text(row)
+                            Text(row).background(row == messageMaxLine ? Color.red : Color.clear)
                             Spacer()
                             // VStack per le icone allineate verticalmente
                             VStack {
@@ -121,18 +125,6 @@ struct ContentView: View {
                     DocumentPicker(fileContent: $fileContent)
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
-                // Toast message
-                if textRows.count >= maxLine {
-                    Text("Too many lines, grep more...")
-                        .padding()
-                        .background(Color.black.opacity(0.7))
-                        .foregroundColor(Color.white)
-                        .cornerRadius(20)
-                        // Aggiusta la posizione e l'animazione come preferisci
-                        .transition(.opacity)
-                        .animation(.easeInOut, value: textRows.count >= maxLine)
-                }
-            }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     private func filteredContent() -> [String] {
