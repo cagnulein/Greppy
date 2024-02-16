@@ -20,10 +20,36 @@ struct ContentView: View {
     @ObservedObject var appState = AppState.shared
     
     private var textRows: [String] {
-            searchText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
+            let allRows = searchText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
+            if(allRows.count > 10000) {
+                // Mostra il toast
+                self.showToast = true
+                
+                // Nascondi il toast dopo 3 secondi
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self.showToast = false
+                }
+            }
+            return Array(allRows.prefix(10000))
         }
 
         var body: some View {
+            
+            ZStack {
+                // Toast message
+                if showToast {
+                    Text("Too many lines, grep more...")
+                        .padding()
+                        .background(Color.black.opacity(0.7))
+                        .foregroundColor(Color.white)
+                        .cornerRadius(20)
+                        // Aggiusta la posizione e l'animazione come preferisci
+                        .transition(.opacity)
+                        .animation(.easeInOut, value: showToast)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            
             VStack {
                 if showingEditor, let selectedText = selectedText {
                     VStack {
@@ -76,17 +102,6 @@ struct ContentView: View {
                               }
                           }
                     })
-
-            if showToast {
-                   Text("Copied to clipboard")
-                       .bold()
-                       .foregroundColor(.white)
-                       .padding()
-                       .background(Color.black.opacity(0.7))
-                       .clipShape(Capsule())
-                       .transition(.opacity)
-                       .zIndex(1) // Assicurati che sia sopra gli altri elementi
-               }
             
             HStack {
                 Button(action: {
@@ -117,8 +132,7 @@ struct ContentView: View {
             .sheet(isPresented: $showingFilePicker) {
                 DocumentPicker(fileContent: $fileContent)
             }
-        }.animation(.default, value: showToast)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     private func filteredContent() -> [String] {
         let lines = fileContent.components(separatedBy: "\n")

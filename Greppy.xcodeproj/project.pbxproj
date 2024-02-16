@@ -11,7 +11,19 @@
 		874386582B78B7F100C10504 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 874386572B78B7F100C10504 /* ContentView.swift */; };
 		8743865A2B78B7F300C10504 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 874386592B78B7F300C10504 /* Assets.xcassets */; };
 		8743865D2B78B7F300C10504 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8743865C2B78B7F300C10504 /* Preview Assets.xcassets */; };
+		87AA61C12B7903910084639A /* GreppyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AA61C02B7903910084639A /* GreppyUITests.swift */; };
+		87AA61C32B7903910084639A /* GreppyUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AA61C22B7903910084639A /* GreppyUITestsLaunchTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		87AA61C42B7903910084639A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8743864A2B78B7F100C10504 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 874386512B78B7F100C10504;
+			remoteInfo = Greppy;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		874386522B78B7F100C10504 /* Greppy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Greppy.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -20,10 +32,20 @@
 		874386592B78B7F300C10504 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8743865C2B78B7F300C10504 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		87AA61B92B78F1730084639A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		87AA61BE2B7903910084639A /* GreppyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GreppyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		87AA61C02B7903910084639A /* GreppyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreppyUITests.swift; sourceTree = "<group>"; };
+		87AA61C22B7903910084639A /* GreppyUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreppyUITestsLaunchTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		8743864F2B78B7F100C10504 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		87AA61BB2B7903910084639A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -37,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				874386542B78B7F100C10504 /* Greppy */,
+				87AA61BF2B7903910084639A /* GreppyUITests */,
 				874386532B78B7F100C10504 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -45,6 +68,7 @@
 			isa = PBXGroup;
 			children = (
 				874386522B78B7F100C10504 /* Greppy.app */,
+				87AA61BE2B7903910084639A /* GreppyUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -69,6 +93,15 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		87AA61BF2B7903910084639A /* GreppyUITests */ = {
+			isa = PBXGroup;
+			children = (
+				87AA61C02B7903910084639A /* GreppyUITests.swift */,
+				87AA61C22B7903910084639A /* GreppyUITestsLaunchTests.swift */,
+			);
+			path = GreppyUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -89,6 +122,24 @@
 			productReference = 874386522B78B7F100C10504 /* Greppy.app */;
 			productType = "com.apple.product-type.application";
 		};
+		87AA61BD2B7903910084639A /* GreppyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 87AA61C62B7903910084639A /* Build configuration list for PBXNativeTarget "GreppyUITests" */;
+			buildPhases = (
+				87AA61BA2B7903910084639A /* Sources */,
+				87AA61BB2B7903910084639A /* Frameworks */,
+				87AA61BC2B7903910084639A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				87AA61C52B7903910084639A /* PBXTargetDependency */,
+			);
+			name = GreppyUITests;
+			productName = GreppyUITests;
+			productReference = 87AA61BE2B7903910084639A /* GreppyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -101,6 +152,10 @@
 				TargetAttributes = {
 					874386512B78B7F100C10504 = {
 						CreatedOnToolsVersion = 15.2;
+					};
+					87AA61BD2B7903910084639A = {
+						CreatedOnToolsVersion = 15.2;
+						TestTargetID = 874386512B78B7F100C10504;
 					};
 				};
 			};
@@ -118,6 +173,7 @@
 			projectRoot = "";
 			targets = (
 				874386512B78B7F100C10504 /* Greppy */,
+				87AA61BD2B7903910084639A /* GreppyUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -129,6 +185,13 @@
 			files = (
 				8743865D2B78B7F300C10504 /* Preview Assets.xcassets in Resources */,
 				8743865A2B78B7F300C10504 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		87AA61BC2B7903910084639A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -144,7 +207,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		87AA61BA2B7903910084639A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				87AA61C12B7903910084639A /* GreppyUITests.swift in Sources */,
+				87AA61C32B7903910084639A /* GreppyUITestsLaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		87AA61C52B7903910084639A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 874386512B78B7F100C10504 /* Greppy */;
+			targetProxy = 87AA61C42B7903910084639A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		8743865E2B78B7F300C10504 /* Debug */ = {
@@ -330,6 +410,40 @@
 			};
 			name = Release;
 		};
+		87AA61C72B7903910084639A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6335M7T29D;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.cagnulein.GreppyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Greppy;
+			};
+			name = Debug;
+		};
+		87AA61C82B7903910084639A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6335M7T29D;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.cagnulein.GreppyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Greppy;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -347,6 +461,15 @@
 			buildConfigurations = (
 				874386612B78B7F300C10504 /* Debug */,
 				874386622B78B7F300C10504 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		87AA61C62B7903910084639A /* Build configuration list for PBXNativeTarget "GreppyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				87AA61C72B7903910084639A /* Debug */,
+				87AA61C82B7903910084639A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
