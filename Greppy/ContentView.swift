@@ -31,6 +31,18 @@ struct ContentView: View {
         return allRows
     }
     
+    func makeAttributedString(fullText: String, highlight: String) -> AttributedString {
+            // case sensitive
+            var attributedString = AttributedString(fullText)
+            
+            if let range = attributedString.range(of: highlight) {
+                attributedString[range].backgroundColor = .yellow // Evidenzia lo sfondo
+                attributedString[range].foregroundColor = .red // Cambia il colore del testo
+            }
+            
+            return attributedString
+        }
+    
     var body: some View {
                 VStack {
                     if showingEditor, let selectedText = selectedText {
@@ -56,7 +68,7 @@ struct ContentView: View {
                 List {
                     ForEach(textRows, id: \.self) { row in
                         HStack {
-                            Text(row).background(row == messageMaxLine ? Color.red : Color.clear)
+                            Text(makeAttributedString(fullText: row, highlight: searchText)).background(row == messageMaxLine ? Color.red : Color.clear)
                             Spacer()
                             // VStack per le icone allineate verticalmente
                             VStack {
