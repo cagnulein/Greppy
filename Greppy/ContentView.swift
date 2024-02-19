@@ -100,6 +100,13 @@ struct ContentView: View {
                                 }
                             }).tabItem {
                                 Label(searchTerm == "" ? "Original" : searchTerm, systemImage: "doc.text.magnifyingglass")
+                            }.contextMenu {
+                                Button {
+                                    // Azione per rimuovere il tab
+                                    searchTabs.remove(at: searchTerm.index)
+                                } label: {
+                                    Label("Close", systemImage: "xmark")
+                                }
                             }
                     }
                 }
