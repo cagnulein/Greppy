@@ -188,7 +188,7 @@ struct ContentView: View {
     
     func loadFileContent(from url: URL) -> String {
         searchTabs.removeAll()
-        addNewSearchTab(searchText: "")
+        //addNewSearchTab(searchText: "")
         // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
         do {
             return try String(contentsOf: url)
