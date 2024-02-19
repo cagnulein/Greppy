@@ -118,6 +118,10 @@ struct ContentView: View {
                 HStack {
                     Button(action: {
                                    showingFilePicker = true
+                                    searchText = ""
+                                    submittedText = ""
+                                    searchTabs.removeAll()
+                                    addNewSearchTab(searchText: "")
                                }) {
                                    Image(systemName: "paperplane") // Esempio di icona di apertura file
                                        .resizable() // Rendi l'immagine resizable
