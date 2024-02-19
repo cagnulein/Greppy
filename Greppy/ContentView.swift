@@ -19,17 +19,18 @@ struct ContentView: View {
     @State private var submittedText: String = ""
     @ObservedObject var appState = AppState.shared
     @State private var maxLine: Int = 2000
+    @State private var searchTabs: [String] = [] 
     @State private var messageMaxLine: String = "!! RESULTS LIMITED TO 2000 DUE TO MEMORY FOOTPRINT. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
     
-    private var textRows: [String] {
-        var allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent()
+    func textRows(for submittedText: String) -> [String] {
+        var allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent(for: submittedText)
         print(allRows.count)
         allRows = Array(allRows.prefix(maxLine))
         if(allRows.count >= maxLine) {
             allRows.append(messageMaxLine)
         }
         return allRows
-    }
+    }    
     
     func makeAttributedString(fullText: String, highlight: String) -> AttributedString {
             // case sensitive
@@ -65,37 +66,51 @@ struct ContentView: View {
                         .transition(.slide) // Aggiunge un'animazione quando l'editor appare/scompare
                         .padding()
                     }
-                List {
-                    ForEach(textRows, id: \.self) { row in
-                        HStack {
-                            Text(makeAttributedString(fullText: row, highlight: searchText)).background(row == messageMaxLine ? Color.red : Color.clear)
-                            Spacer()
-                            // VStack per le icone allineate verticalmente
-                            VStack {
-                                Button(action: {
-                                    self.selectedText = row // Imposta il testo selezionato sulla riga toccata
-                                    self.showingEditor = true // Mostra l'editor
-                                }) {
-                                    Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
-                                        .foregroundColor(.blue)
-                                }.accessibilityIdentifier("buttonShowingEditor")
+                TabView {
+                    ForEach(searchTabs, id: \.self) { searchTerm in
+                        List {
+                            ForEach(textRows(for: searchTerm), id: \.self) { row in
+                                HStack {
+                                    Text(makeAttributedString(fullText: row, highlight: searchTerm)).background(row == messageMaxLine ? Color.red : Color.clear)
+                                    Spacer()
+                                    // VStack per le icone allineate verticalmente
+                                    VStack {
+                                        Button(action: {
+                                            self.selectedText = row // Imposta il testo selezionato sulla riga toccata
+                                            self.showingEditor = true // Mostra l'editor
+                                        }) {
+                                            Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
+                                                .foregroundColor(.blue)
+                                        }.accessibilityIdentifier("buttonShowingEditor")
+                                    }
+                                }
+                                .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
                             }
-                        }
-                        .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
+                        }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
+                            .onOpenURL(perform: { url in
+                                fileContent = "Loading..."
+                                // Esegui la lettura del file in background
+                                DispatchQueue.global(qos: .userInitiated).async {
+                                    let loadedContent = loadFileContent(from: url)
+                                    
+                                    // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
+                                    DispatchQueue.main.async {
+                                        fileContent = loadedContent
+                                    }
+                                }
+                            }).tabItem {
+                                Label(searchTerm == "" ? "Original" : searchTerm, systemImage: "doc.text.magnifyingglass")
+                            }.contextMenu {
+                                Button {
+                                    if let index = searchTabs.firstIndex(of: searchTerm) {
+                                        searchTabs.remove(at: index)
+                                    }
+                                } label: {
+                                    Label("Close", systemImage: "xmark")
+                                }
+                            }
                     }
-                }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
-                        .onOpenURL(perform: { url in
-                            fileContent = "Loading..."
-                            // Esegui la lettura del file in background
-                              DispatchQueue.global(qos: .userInitiated).async {
-                                  let loadedContent = loadFileContent(from: url)
-                                  
-                                  // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
-                                  DispatchQueue.main.async {
-                                      fileContent = loadedContent
-                                  }
-                              }
-                        })
+                }
                 
                 HStack {
                     Button(action: {
@@ -116,6 +131,7 @@ struct ContentView: View {
                                     // Questa azione viene eseguita quando l'utente preme "Done"
                                     submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
                                     // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
+                                    addNewSearchTab(searchText: searchText)
                                 }
                                 .textInputAutocapitalization(.none) // Opzionale: disabilita l'autocapitalizzazione
                                 .disableAutocorrection(true) // Opzionale: disabilita l'autocorrezione
@@ -137,9 +153,15 @@ struct ContentView: View {
                     DocumentPicker(fileContent: $fileContent)
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity).onAppear(perform: {
+                addNewSearchTab(searchText: "")
+            })
     }
-    private func filteredContent() -> [String] {
+    func addNewSearchTab(searchText: String) {
+        searchTabs.append(searchText) // Aggiungi il nuovo termine di ricerca alla lista dei tab
+    }
+
+    private func filteredContent(for submittedText: String) -> [String] {
         let lines = fileContent.components(separatedBy: "\n")
         var filteredLines = [String]()
 
@@ -153,7 +175,7 @@ struct ContentView: View {
         }
 
         return filteredLines
-    }
+    }    
     
     func loadFileContent(from url: URL) -> String {
         // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
