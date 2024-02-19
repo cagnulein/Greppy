@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var submittedText: String = ""
     @ObservedObject var appState = AppState.shared
     @State private var maxLine: Int = 2000
+    @State private var searchTabs: [String] = [] 
     @State private var messageMaxLine: String = "!! RESULTS LIMITED TO 2000 DUE TO MEMORY FOOTPRINT. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
     
     private var textRows: [String] {
