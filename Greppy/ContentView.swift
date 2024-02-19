@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var maxLine: Int = 2000
     @State private var searchTabs: [String] = [] 
     @State private var messageMaxLine: String = "!! RESULTS LIMITED TO 2000 DUE TO MEMORY FOOTPRINT. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
+    @State private var selectedTabIndex: Int = 0
     
     func textRows(for submittedText: String) -> [String] {
         var allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent(for: submittedText)
@@ -66,7 +67,7 @@ struct ContentView: View {
                         .transition(.slide) // Aggiunge un'animazione quando l'editor appare/scompare
                         .padding()
                     }
-                TabView {
+                TabView(selection: $selectedTabIndex) {
                     ForEach(searchTabs, id: \.self) { searchTerm in
                         List {
                             ForEach(textRows(for: searchTerm), id: \.self) { row in
@@ -161,6 +162,7 @@ struct ContentView: View {
     }
     func addNewSearchTab(searchText: String) {
         searchTabs.append(searchText) // Aggiungi il nuovo termine di ricerca alla lista dei tab
+        selectedTabIndex = searchTabs.count - 1
     }
 
     private func filteredContent(for submittedText: String) -> [String] {
