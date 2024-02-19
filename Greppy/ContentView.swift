@@ -111,7 +111,7 @@ struct ContentView: View {
                                 } label: {
                                     Label("Close", systemImage: "xmark")
                                 }
-                            }
+                            }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
                     }
                 }
                 
@@ -163,6 +163,7 @@ struct ContentView: View {
     func addNewSearchTab(searchText: String) {
         searchTabs.append(searchText) // Aggiungi il nuovo termine di ricerca alla lista dei tab
         selectedTabIndex = searchTabs.count - 1
+        print("selectedTabIndex \(selectedTabIndex)")
     }
 
     private func filteredContent(for submittedText: String) -> [String] {
