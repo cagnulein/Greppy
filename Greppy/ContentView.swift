@@ -99,7 +99,7 @@ struct ContentView: View {
                                     }
                                 }
                             }).tabItem {
-                                Label(searchTerm, systemImage: "doc.text.magnifyingglass")
+                                Label(searchTerm == "" ? "Original" : searchTerm, systemImage: "doc.text.magnifyingglass")
                             }
                     }
                 }
