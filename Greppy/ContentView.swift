@@ -123,6 +123,7 @@ struct ContentView: View {
                                     // Questa azione viene eseguita quando l'utente preme "Done"
                                     submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
                                     // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
+                                    addNewSearchTab(searchText: searchText)
                                 }
                                 .textInputAutocapitalization(.none) // Opzionale: disabilita l'autocapitalizzazione
                                 .disableAutocorrection(true) // Opzionale: disabilita l'autocorrezione
