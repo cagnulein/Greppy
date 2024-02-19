@@ -102,8 +102,9 @@ struct ContentView: View {
                                 Label(searchTerm == "" ? "Original" : searchTerm, systemImage: "doc.text.magnifyingglass")
                             }.contextMenu {
                                 Button {
-                                    // Azione per rimuovere il tab
-                                    searchTabs.remove(at: searchTerm.index)
+                                    if let index = searchTabs.firstIndex(of: searchTerm) {
+                                        searchTabs.remove(at: index)
+                                    }
                                 } label: {
                                     Label("Close", systemImage: "xmark")
                                 }
