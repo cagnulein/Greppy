@@ -98,7 +98,9 @@ struct ContentView: View {
                                         fileContent = loadedContent
                                     }
                                 }
-                            })
+                            }).tabItem {
+                                Label(searchTerm, systemImage: "doc.text.magnifyingglass")
+                            }
                     }
                 }
                 
