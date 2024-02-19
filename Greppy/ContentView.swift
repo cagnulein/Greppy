@@ -142,7 +142,9 @@ struct ContentView: View {
                     DocumentPicker(fileContent: $fileContent)
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity).onAppear(perform: {
+                addNewSearchTab(searchText: "")
+            })
     }
     func addNewSearchTab(searchText: String) {
         searchTabs.append(searchText) // Aggiungi il nuovo termine di ricerca alla lista dei tab
