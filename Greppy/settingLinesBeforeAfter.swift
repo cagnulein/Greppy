@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct settingLinesBeforeAfterView: View {
+    @AppStorage("caseSensitiveSearch") private var caseSensitiveSearch = false
     @AppStorage("linesBefore") private var linesBefore = 0
     @AppStorage("linesAfter") private var linesAfter = 0
     
@@ -21,6 +22,9 @@ struct settingLinesBeforeAfterView: View {
                     Stepper(value: $linesAfter, in: 0...10) {
                         Text("After: \(linesAfter)")
                     }
+                }
+                Section(header: Text("Search")) {
+                    Toggle("Case Sensitive", isOn: $caseSensitiveSearch)
                 }
             }
             .navigationTitle("Impostazioni")

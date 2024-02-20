@@ -35,17 +35,25 @@ struct ContentView: View {
         return allRows
     }    
     
-    func makeAttributedString(fullText: String, highlight: String) -> AttributedString {
-            // case sensitive
-            var attributedString = AttributedString(fullText)
-            
-            if let range = attributedString.range(of: highlight) {
-                attributedString[range].backgroundColor = .yellow // Evidenzia lo sfondo
-                attributedString[range].foregroundColor = .red // Cambia il colore del testo
+    func makeAttributedString(fullText: String, highlight: String, isCaseSensitive: Bool) -> AttributedString {
+        var attributedString = AttributedString(fullText)
+        
+        // Determina le opzioni di ricerca in base alla sensibilità alle maiuscole e minuscole
+        let options: String.CompareOptions = isCaseSensitive ? [] : .caseInsensitive
+        
+        // Utilizza un ciclo per trovare tutte le corrispondenze
+        var currentIndex = fullText.startIndex
+        while let range = fullText.range(of: highlight, options: options, range: currentIndex..<fullText.endIndex), !range.isEmpty {
+            // Converti il range di String in un range di AttributedString
+            if let attributedRange = Range<AttributedString.Index>(range, in: attributedString) {
+                attributedString[attributedRange].backgroundColor = .yellow
+                attributedString[attributedRange].foregroundColor = .red
             }
-            
-            return attributedString
+            currentIndex = range.upperBound
         }
+        
+        return attributedString
+    }
     
     var body: some View {
                 VStack {
@@ -74,7 +82,7 @@ struct ContentView: View {
                         List {
                             ForEach(textRows(for: searchTerm), id: \.self) { row in
                                 HStack {
-                                    Text(makeAttributedString(fullText: row, highlight: searchTerm)).background(row == messageMaxLine ? Color.red : Color.clear)
+                                    Text(makeAttributedString(fullText: row, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch"))).background(row == messageMaxLine ? Color.red : Color.clear)
                                     Spacer()
                                     // VStack per le icone allineate verticalmente
                                     VStack {
@@ -125,7 +133,7 @@ struct ContentView: View {
                                     searchTabs.removeAll()
                                     addNewSearchTab(searchText: "")
                                }) {
-                                   Image(systemName: "paperplane") // Esempio di icona di apertura file
+                                   Image(systemName: "folder") // Esempio di icona di apertura file
                                        .resizable() // Rendi l'immagine resizable
                                        .aspectRatio(contentMode: .fit) // Mantiene le proporzioni dell'immagine
                                        .frame(width: 24, height: 24) // Imposta dimensioni dell'icona
@@ -135,7 +143,7 @@ struct ContentView: View {
                     Button(action: {
                                 showingSettingLinesBeforeAfter = true
                                }) {
-                                   Image(systemName: "calendar.day.timeline.left")
+                                   Image(systemName: "gear")
                                        .resizable() // Rendi l'immagine resizable
                                        .aspectRatio(contentMode: .fit) // Mantiene le proporzioni dell'immagine
                                        .frame(width: 24, height: 24) // Imposta dimensioni dell'icona
@@ -197,18 +205,27 @@ struct ContentView: View {
         let lines = fileContent.components(separatedBy: "\n")
         var filteredLines = [String]()
 
-        // Recupera i valori dai settaggi usando @AppStorage
+        // Recupera i valori dai settaggi usando UserDefaults
         let linesBefore = UserDefaults.standard.integer(forKey: "linesBefore")
         let linesAfter = UserDefaults.standard.integer(forKey: "linesAfter")
+        let isCaseSensitive = UserDefaults.standard.bool(forKey: "caseSensitiveSearch")
 
         for (index, line) in lines.enumerated() {
-            if line.localizedCaseInsensitiveContains(submittedText) {
+            // Applica la logica di confronto in base alla sensibilità alle maiuscole
+            let doesMatch: Bool
+            if isCaseSensitive {
+                doesMatch = line.contains(submittedText)
+            } else {
+                doesMatch = line.lowercased().contains(submittedText.lowercased())
+            }
+
+            if doesMatch {
                 // Calcola l'intervallo di linee prima della corrispondenza
                 let startRange = max(0, index - linesBefore)
-                let endRange = min(lines.count - 1, index + linesAfter)
+                let endRange = min(lines.count, index + linesAfter + 1) // Aggiustato per includere la linea dopo
 
                 // Aggiungi le linee di contesto prima, la linea corrente e dopo
-                for contextIndex in startRange...endRange {
+                for contextIndex in startRange..<endRange {
                     let contextLine = lines[contextIndex]
                     // Evita di aggiungere duplicati se ci sono corrispondenze multiple vicine
                     if !filteredLines.contains(contextLine) {
@@ -229,7 +246,7 @@ struct ContentView: View {
 
         return Array(filteredLines.prefix(maxLine))
     }
-    
+
     func loadFileContent(from url: URL) -> String {
         searchTabs.removeAll()
         addNewSearchTab(searchText: "")
