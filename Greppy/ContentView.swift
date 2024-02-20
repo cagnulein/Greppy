@@ -185,6 +185,7 @@ struct ContentView: View {
                     
                     Button(action: {
                         // Azione per chiudere l'editor
+                        userInput = ""
                         searchText = ""
                         submittedText = ""
                     }) {
