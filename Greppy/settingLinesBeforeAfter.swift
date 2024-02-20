@@ -6,11 +6,21 @@
 //
 
 import SwiftUI
+import MessageUI
 
 struct settingLinesBeforeAfterView: View {
     @AppStorage("caseSensitiveSearch") private var caseSensitiveSearch = false
     @AppStorage("linesBefore") private var linesBefore = 0
     @AppStorage("linesAfter") private var linesAfter = 0
+    
+    private var appVersion: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "N/A"
+    }
+    
+    private var appBuild: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "N/A"
+    }
+
     
     var body: some View {
         NavigationView {
@@ -25,6 +35,16 @@ struct settingLinesBeforeAfterView: View {
                 }
                 Section(header: Text("Search")) {
                     Toggle("Case Sensitive", isOn: $caseSensitiveSearch)
+                }
+                Section(header: Text("Support")) {
+                    Link("Help - Ask me a new feature", destination: URL(string: "mailto:roberto.viola83@gmail.com")!)
+                }
+                Section(header: Text("App Info")) {
+                    HStack {
+                        Text("Versione")
+                        Spacer()
+                        Text(appVersion + " build " + appBuild)
+                    }
                 }
             }
             .navigationTitle("Impostazioni")
