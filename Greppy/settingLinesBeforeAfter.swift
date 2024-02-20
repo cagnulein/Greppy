@@ -41,7 +41,7 @@ struct settingLinesBeforeAfterView: View {
                     }
                 }
                 Section(header: Text("Support")) {
-                    Link("Help - Ask me a new feature", destination: URL(string: "mailto:roberto.viola83@gmail.com")!)
+                    Link("Help - Ask me a new feature", destination: URL(string: "mailto:roberto.viola83@gmail.com?subject=greppy%20support")!)
                 }
                 Section(header: Text("App Info")) {
                     HStack {
