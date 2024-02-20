@@ -51,7 +51,7 @@ struct settingLinesBeforeAfterView: View {
                     }
                 }
             }
-            .navigationTitle("Impostazioni")
+            .navigationTitle("Settings")
         }
     }
 }
