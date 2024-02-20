@@ -12,6 +12,7 @@ struct settingLinesBeforeAfterView: View {
     @AppStorage("caseSensitiveSearch") private var caseSensitiveSearch = false
     @AppStorage("linesBefore") private var linesBefore = 0
     @AppStorage("linesAfter") private var linesAfter = 0
+    @AppStorage("maxLines") private var maxLines = 2000
     
     private var appVersion: String {
         (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "N/A"
@@ -25,6 +26,12 @@ struct settingLinesBeforeAfterView: View {
     var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("Search")) {
+                    Toggle("Case Sensitive", isOn: $caseSensitiveSearch)
+                    Stepper(value: $maxLines, in: 1000...10000, step: 100) {
+                        Text("Max Output Lines: \(maxLines)")
+                    }
+                }
                 Section(header: Text("Context Lines")) {
                     Stepper(value: $linesBefore, in: 0...10) {
                         Text("Before: \(linesBefore)")
@@ -33,15 +40,12 @@ struct settingLinesBeforeAfterView: View {
                         Text("After: \(linesAfter)")
                     }
                 }
-                Section(header: Text("Search")) {
-                    Toggle("Case Sensitive", isOn: $caseSensitiveSearch)
-                }
                 Section(header: Text("Support")) {
                     Link("Help - Ask me a new feature", destination: URL(string: "mailto:roberto.viola83@gmail.com")!)
                 }
                 Section(header: Text("App Info")) {
                     HStack {
-                        Text("Versione")
+                        Text("Version")
                         Spacer()
                         Text(appVersion + " build " + appBuild)
                     }

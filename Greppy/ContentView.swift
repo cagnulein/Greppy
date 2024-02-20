@@ -18,7 +18,7 @@ struct ContentView: View {
     @State private var selectedText: String? = nil // Traccia il testo selezionato
     @State private var submittedText: String = ""
     @ObservedObject var appState = AppState.shared
-    @State private var maxLine: Int = 2000
+    @State private var maxLine: Int = UserDefaults.standard.integer(forKey: "maxLines") != 0 ? UserDefaults.standard.integer(forKey: "maxLines") : 2000
     @State private var searchTabs: [String] = [] 
     @State private var messageMaxLine: String = "!! RESULTS LIMITED TO 2000 DUE TO MEMORY FOOTPRINT. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
     @State private var selectedTabIndex: Int = 0
