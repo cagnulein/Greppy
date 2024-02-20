@@ -41,15 +41,25 @@ struct ContentView: View {
         // Determina le opzioni di ricerca in base alla sensibilità alle maiuscole e minuscole
         let options: String.CompareOptions = isCaseSensitive ? [] : .caseInsensitive
         
+        // Flag per tenere traccia se abbiamo trovato almeno un match
+        var foundMatch = false
+        
         // Utilizza un ciclo per trovare tutte le corrispondenze
         var currentIndex = fullText.startIndex
         while let range = fullText.range(of: highlight, options: options, range: currentIndex..<fullText.endIndex), !range.isEmpty {
+            foundMatch = true // Abbiamo trovato almeno un match
             // Converti il range di String in un range di AttributedString
             if let attributedRange = Range<AttributedString.Index>(range, in: attributedString) {
                 attributedString[attributedRange].backgroundColor = .yellow
                 attributedString[attributedRange].foregroundColor = .red
             }
             currentIndex = range.upperBound
+        }
+        
+        // Se non abbiamo trovato alcun match, applica uno stile di default all'intero testo
+        if !foundMatch {
+            attributedString.foregroundColor = .gray // Esempio di applicazione di un colore di foreground di default
+            // Puoi impostare qui altri stili di default se necessario
         }
         
         return attributedString
