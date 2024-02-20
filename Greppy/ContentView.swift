@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var selectedTabIndex: Int = 0
     @State private var showingSettingLinesBeforeAfter = false
     @State private var firstLoad: Bool = false
+    @State private var userInput: String = ""
     
     func textRows(for submittedText: String) -> [String] {
         var allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent(for: submittedText)
@@ -161,13 +162,14 @@ struct ContentView: View {
                                    settingLinesBeforeAfterView()
                                }
                     
-                    TextField("Search", text: $searchText)
+                    TextField("Search", text: $userInput)
                                 .padding()
                                 .accessibilityIdentifier("searchBox")
                                 .submitLabel(.done) // Imposta la label del tasto di invio a "Done"
                                 .onSubmit {
                                     
                                     // if exist, I will remove
+                                    searchText = userInput
                                     if let index = searchTabs.firstIndex(of: searchText) {
                                         if(index > 0) {
                                             searchTabs.remove(at: index)
