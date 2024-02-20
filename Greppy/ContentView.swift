@@ -22,6 +22,7 @@ struct ContentView: View {
     @State private var searchTabs: [String] = [] 
     @State private var messageMaxLine: String = "!! RESULTS LIMITED TO 2000 DUE TO MEMORY FOOTPRINT. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
     @State private var selectedTabIndex: Int = 0
+    @State private var showingSettingLinesBeforeAfter = false
     
     func textRows(for submittedText: String) -> [String] {
         var allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent(for: submittedText)
@@ -130,11 +131,29 @@ struct ContentView: View {
                                }
                                .padding()
 
+                    Button(action: {
+                                showingSettingLinesBeforeAfter = true
+                               }) {
+                                   Image(systemName: "calendar.day.timeline.left")
+                                       .resizable() // Rendi l'immagine resizable
+                                       .aspectRatio(contentMode: .fit) // Mantiene le proporzioni dell'immagine
+                                       .frame(width: 24, height: 24) // Imposta dimensioni dell'icona
+                               }.sheet(isPresented: $showingSettingLinesBeforeAfter) {
+                                   settingLinesBeforeAfterView()
+                               }
+                    
                     TextField("Search", text: $searchText)
                                 .padding()
                                 .accessibilityIdentifier("searchBox")
                                 .submitLabel(.done) // Imposta la label del tasto di invio a "Done"
                                 .onSubmit {
+                                    
+                                    // if exist, I will remove
+                                    if let index = searchTabs.firstIndex(of: searchText) {
+                                        if(index > 0) {
+                                            searchTabs.remove(at: index)
+                                        }
+                                    }
                                     // Questa azione viene eseguita quando l'utente preme "Done"
                                     submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
                                     // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
@@ -174,17 +193,38 @@ struct ContentView: View {
         let lines = fileContent.components(separatedBy: "\n")
         var filteredLines = [String]()
 
-        for line in lines {
+        // Recupera i valori dai settaggi usando @AppStorage
+        let linesBefore = UserDefaults.standard.integer(forKey: "linesBefore")
+        let linesAfter = UserDefaults.standard.integer(forKey: "linesAfter")
+
+        for (index, line) in lines.enumerated() {
             if line.localizedCaseInsensitiveContains(submittedText) {
-                filteredLines.append(line)
-                if filteredLines.count == maxLine {
+                // Calcola l'intervallo di linee prima della corrispondenza
+                let startRange = max(0, index - linesBefore)
+                let endRange = min(lines.count - 1, index + linesAfter)
+
+                // Aggiungi le linee di contesto prima, la linea corrente e dopo
+                for contextIndex in startRange...endRange {
+                    let contextLine = lines[contextIndex]
+                    // Evita di aggiungere duplicati se ci sono corrispondenze multiple vicine
+                    if !filteredLines.contains(contextLine) {
+                        filteredLines.append(contextLine)
+                    }
+                }
+
+                // Controlla se abbiamo raggiunto il limite massimo di linee
+                if filteredLines.count >= maxLine {
                     break
                 }
             }
         }
 
-        return filteredLines
-    }    
+        if(filteredLines.count >= maxLine) {
+            filteredLines.append(messageMaxLine)
+        }
+
+        return Array(filteredLines.prefix(maxLine))
+    }
     
     func loadFileContent(from url: URL) -> String {
         searchTabs.removeAll()

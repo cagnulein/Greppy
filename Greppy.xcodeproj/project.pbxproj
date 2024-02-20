@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		873630802B84E39E00436D44 /* settingLinesBeforeAfter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8736307F2B84E39E00436D44 /* settingLinesBeforeAfter.swift */; };
 		874386562B78B7F100C10504 /* GreppyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 874386552B78B7F100C10504 /* GreppyApp.swift */; };
 		874386582B78B7F100C10504 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 874386572B78B7F100C10504 /* ContentView.swift */; };
 		8743865A2B78B7F300C10504 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 874386592B78B7F300C10504 /* Assets.xcassets */; };
@@ -26,6 +27,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8736307F2B84E39E00436D44 /* settingLinesBeforeAfter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = settingLinesBeforeAfter.swift; sourceTree = "<group>"; };
 		874386522B78B7F100C10504 /* Greppy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Greppy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		874386552B78B7F100C10504 /* GreppyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreppyApp.swift; sourceTree = "<group>"; };
 		874386572B78B7F100C10504 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -79,6 +81,7 @@
 				87AA61B92B78F1730084639A /* Info.plist */,
 				874386552B78B7F100C10504 /* GreppyApp.swift */,
 				874386572B78B7F100C10504 /* ContentView.swift */,
+				8736307F2B84E39E00436D44 /* settingLinesBeforeAfter.swift */,
 				874386592B78B7F300C10504 /* Assets.xcassets */,
 				8743865B2B78B7F300C10504 /* Preview Content */,
 			);
@@ -203,6 +206,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				874386582B78B7F100C10504 /* ContentView.swift in Sources */,
+				873630802B84E39E00436D44 /* settingLinesBeforeAfter.swift in Sources */,
 				874386562B78B7F100C10504 /* GreppyApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
