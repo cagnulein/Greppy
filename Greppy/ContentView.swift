@@ -23,6 +23,7 @@ struct ContentView: View {
     @State private var messageMaxLine: String = "!! RESULTS LIMITED TO 2000 DUE TO MEMORY FOOTPRINT. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
     @State private var selectedTabIndex: Int = 0
     @State private var showingSettingLinesBeforeAfter = false
+    @State private var firstLoad: Bool = false
     
     func textRows(for submittedText: String) -> [String] {
         var allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent(for: submittedText)
@@ -180,7 +181,10 @@ struct ContentView: View {
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             .frame(maxWidth: .infinity, maxHeight: .infinity).onAppear(perform: {
-                addNewSearchTab(searchText: "")
+                if(firstLoad == false) {
+                    addNewSearchTab(searchText: "")
+                    firstLoad = true
+                }
             })
     }
     func addNewSearchTab(searchText: String) {
