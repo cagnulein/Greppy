@@ -25,6 +25,7 @@ struct ContentView: View {
     @State private var firstLoad: Bool = false
     @State private var userInput: String = ""
     @State private var sheetWasPresented = false
+    @State private var bookmarkedLines: [String] = []
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String)] {
         var allRows = submittedText.isEmpty
@@ -76,6 +77,10 @@ struct ContentView: View {
             // Puoi impostare qui altri stili di default se necessario
         }
         
+        if let index = bookmarkedLines.firstIndex(of: fullText) {
+            attributedString.foregroundColor = .blue
+        }
+        
         return attributedString
     }
     
@@ -84,7 +89,25 @@ struct ContentView: View {
                     if showingEditor, let selectedText = selectedText {
                         VStack {
                             HStack {
-                                Spacer() // Spinge l'icona tutto a destra
+                                Spacer() // Spinge le icone tutto a destra
+                                
+                                // Pulsante di bookmark
+                                Button(action: {
+                                    if let index = bookmarkedLines.firstIndex(of: selectedText) {
+                                        // Se la linea è già nei bookmark, rimuovila
+                                        bookmarkedLines.remove(at: index)
+                                    } else {
+                                        // Altrimenti, aggiungila ai bookmark
+                                        bookmarkedLines.append(selectedText)
+                                    }
+                                }) {
+                                    // Cambia l'icona in base alla presenza nella lista dei bookmark
+                                    Image(systemName: bookmarkedLines.contains(selectedText) ? "bookmark.fill" : "bookmark")
+                                        .foregroundColor(.blue)
+                                        .padding()
+                                }
+
+                                // Pulsante per chiudere l'editor
                                 Button(action: {
                                     // Azione per chiudere l'editor
                                     self.showingEditor = false
@@ -112,9 +135,12 @@ struct ContentView: View {
                                     Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
                                         .background(row.text == messageMaxLine ? Color.red : Color.clear)
                                         .onTapGesture {
-                                            // Ora `row` è una tupla, quindi usa `row.text` per accedere al testo della riga
-                                            self.selectedText = row.text
-                                            self.showingEditor = true
+                                            if(showingEditor) {
+                                                showingEditor = false
+                                            } else {
+                                                self.selectedText = row.text
+                                                self.showingEditor = true
+                                            }
                                         }
                                 }
                             }
@@ -151,6 +177,7 @@ struct ContentView: View {
                                    showingFilePicker = true
                                     searchText = ""
                                     submittedText = ""
+                                    bookmarkedLines = []
                                     searchTabs.removeAll()
                                     addNewSearchTab(searchText: "")
                                }) {
@@ -254,6 +281,10 @@ struct ContentView: View {
             if(isInverted) {
                 doesMatch = !doesMatch
             }
+            
+            if let index = bookmarkedLines.firstIndex(of: line) {
+                doesMatch = true
+            }
 
             if doesMatch {
                 let startRange = max(0, index - linesBefore)
@@ -281,6 +312,7 @@ struct ContentView: View {
 
 
     func loadFileContent(from url: URL) -> String {
+        bookmarkedLines = []
         searchTabs.removeAll()
         addNewSearchTab(searchText: "")
         // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
