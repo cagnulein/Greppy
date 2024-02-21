@@ -20,7 +20,7 @@ struct ContentView: View {
     @ObservedObject var appState = AppState.shared
     @State private var maxLine: Int = UserDefaults.standard.integer(forKey: "maxLines") != 0 ? UserDefaults.standard.integer(forKey: "maxLines") : 2000
     @State private var searchTabs: [String] = [] 
-    @State private var messageMaxLine: String = "!! RESULTS LIMITED TO 2000 DUE TO MEMORY FOOTPRINT. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
+    @State private var messageMaxLine: String = "!! RESULTS LIMITED AS SETTING. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
     @State private var selectedTabIndex: Int = 0
     @State private var showingSettingLinesBeforeAfter = false
     @State private var firstLoad: Bool = false
@@ -94,18 +94,12 @@ struct ContentView: View {
                         List {
                             ForEach(textRows(for: searchTerm), id: \.self) { row in
                                 HStack {
-                                    Text(makeAttributedString(fullText: row, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch"))).background(row == messageMaxLine ? Color.red : Color.clear)
-                                    Spacer()
-                                    // VStack per le icone allineate verticalmente
-                                    VStack {
-                                        Button(action: {
+                                    Text(makeAttributedString(fullText: row, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
+                                        .background(row == messageMaxLine ? Color.red : Color.clear)
+                                        .onTapGesture() {
                                             self.selectedText = row // Imposta il testo selezionato sulla riga toccata
                                             self.showingEditor = true // Mostra l'editor
-                                        }) {
-                                            Image(systemName: "filemenu.and.selection") // Icona per l'azione di selezione
-                                                .foregroundColor(.blue)
-                                        }.accessibilityIdentifier("buttonShowingEditor")
-                                    }
+                                        }
                                 }
                                 .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
                             }
