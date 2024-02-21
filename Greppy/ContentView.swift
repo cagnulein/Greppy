@@ -25,6 +25,7 @@ struct ContentView: View {
     @State private var showingSettingLinesBeforeAfter = false
     @State private var firstLoad: Bool = false
     @State private var userInput: String = ""
+    @State private var sheetWasPresented = false
     
     func textRows(for submittedText: String) -> [String] {
         var allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent(for: submittedText)
@@ -160,6 +161,11 @@ struct ContentView: View {
                                        .frame(width: 24, height: 24) // Imposta dimensioni dell'icona
                                }.sheet(isPresented: $showingSettingLinesBeforeAfter) {
                                    settingLinesBeforeAfterView()
+                               }.onChange(of: showingSettingLinesBeforeAfter) { newValue in
+                                   if sheetWasPresented && !newValue {
+                                       sheetWasPresented = false
+                                       submitSearch()
+                                   }
                                }
                     
                     TextField("Search", text: $userInput)
@@ -167,18 +173,7 @@ struct ContentView: View {
                                 .accessibilityIdentifier("searchBox")
                                 .submitLabel(.done) // Imposta la label del tasto di invio a "Done"
                                 .onSubmit {
-                                    
-                                    // if exist, I will remove
-                                    searchText = userInput
-                                    if let index = searchTabs.firstIndex(of: searchText) {
-                                        if(index > 0) {
-                                            searchTabs.remove(at: index)
-                                        }
-                                    }
-                                    // Questa azione viene eseguita quando l'utente preme "Done"
-                                    submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
-                                    // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
-                                    addNewSearchTab(searchText: searchText)
+                                    submitSearch()
                                 }
                                 .textInputAutocapitalization(.none) // Opzionale: disabilita l'autocapitalizzazione
                                 .disableAutocorrection(true) // Opzionale: disabilita l'autocorrezione
@@ -208,6 +203,23 @@ struct ContentView: View {
                 }
             })
     }
+    func submitSearch() {
+        if(userInput.count == 0) {
+            return
+        }
+        // if exist, I will remove
+        searchText = userInput
+        if let index = searchTabs.firstIndex(of: searchText) {
+            if(index > 0) {
+                searchTabs.remove(at: index)
+            }
+        }
+        // Questa azione viene eseguita quando l'utente preme "Done"
+        submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
+        // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
+        addNewSearchTab(searchText: searchText)
+    }
+    
     func addNewSearchTab(searchText: String) {
         searchTabs.append(searchText) // Aggiungi il nuovo termine di ricerca alla lista dei tab
         selectedTabIndex = searchTabs.count - 1
