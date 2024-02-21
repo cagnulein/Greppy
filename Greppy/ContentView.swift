@@ -101,7 +101,6 @@ struct ContentView: View {
                                             self.showingEditor = true // Mostra l'editor
                                         }
                                 }
-                                .padding(.vertical, 4) // Aggiungi un po' di padding per facilitare la pressione del bottone
                             }
                         }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
                             .onOpenURL(perform: { url in
