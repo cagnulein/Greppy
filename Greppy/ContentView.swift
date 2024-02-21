@@ -18,8 +18,7 @@ struct ContentView: View {
     @State private var selectedText: String? = nil // Traccia il testo selezionato
     @State private var submittedText: String = ""
     @ObservedObject var appState = AppState.shared
-    @State private var maxLine: Int = UserDefaults.standard.integer(forKey: "maxLines") != 0 ? UserDefaults.standard.integer(forKey: "maxLines") : 2000
-    @State private var searchTabs: [String] = [] 
+    @State private var searchTabs: [String] = []
     @State private var messageMaxLine: String = "!! RESULTS LIMITED AS SETTING. REFINE SEARCH FOR MORE SPECIFIC OUTCOMES !!"
     @State private var selectedTabIndex: Int = 0
     @State private var showingSettingLinesBeforeAfter = false
@@ -27,17 +26,26 @@ struct ContentView: View {
     @State private var userInput: String = ""
     @State private var sheetWasPresented = false
     
-    func textRows(for submittedText: String) -> [String] {
-        var allRows = submittedText.isEmpty ? fileContent.components(separatedBy: "\n") : filteredContent(for: submittedText)
-        print(allRows.count)
-        allRows = Array(allRows.prefix(maxLine))
-        if(allRows.count >= maxLine) {
-            allRows.append(messageMaxLine)
+    func textRows(for submittedText: String) -> [(lineNumber: Int, text: String)] {
+        var allRows = submittedText.isEmpty
+            ? fileContent.components(separatedBy: "\n").enumerated().map { (lineNumber: $0.offset + 1, text: $0.element) }
+            : filteredContent(for: submittedText)
+        
+        if(allRows.count > maxLine()) {
+            allRows = Array(allRows.prefix(maxLine()))
+            allRows.append((lineNumber: -1, text: messageMaxLine))
         }
+        
         return allRows
-    }    
+    }
+    
+    func maxLine() -> Int {
+        return (UserDefaults.standard.integer(forKey: "maxLines") != 0 ? UserDefaults.standard.integer(forKey: "maxLines") : 2000)
+    }
+
     
     func makeAttributedString(fullText: String, highlight: String, isCaseSensitive: Bool) -> AttributedString {
+        let isInverted = UserDefaults.standard.bool(forKey: "inverted")
         var attributedString = AttributedString(fullText)
         
         // Determina le opzioni di ricerca in base alla sensibilità alle maiuscole e minuscole
@@ -56,6 +64,10 @@ struct ContentView: View {
                 attributedString[attributedRange].foregroundColor = .red
             }
             currentIndex = range.upperBound
+        }
+        
+        if(isInverted) {
+            foundMatch = !foundMatch
         }
         
         // Se non abbiamo trovato alcun match, applica uno stile di default all'intero testo
@@ -92,13 +104,17 @@ struct ContentView: View {
                 TabView(selection: $selectedTabIndex) {
                     ForEach(searchTabs, id: \.self) { searchTerm in
                         List {
-                            ForEach(textRows(for: searchTerm), id: \.self) { row in
+                            ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
                                 HStack {
-                                    Text(makeAttributedString(fullText: row, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
-                                        .background(row == messageMaxLine ? Color.red : Color.clear)
-                                        .onTapGesture() {
-                                            self.selectedText = row // Imposta il testo selezionato sulla riga toccata
-                                            self.showingEditor = true // Mostra l'editor
+                                    if(UserDefaults.standard.bool(forKey: "lineNumber")) {
+                                        Text("\(row.lineNumber).")
+                                    }
+                                    Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
+                                        .background(row.text == messageMaxLine ? Color.red : Color.clear)
+                                        .onTapGesture {
+                                            // Ora `row` è una tupla, quindi usa `row.text` per accedere al testo della riga
+                                            self.selectedText = row.text
+                                            self.showingEditor = true
                                         }
                                 }
                             }
@@ -219,51 +235,50 @@ struct ContentView: View {
         print("selectedTabIndex \(selectedTabIndex)")
     }
 
-    private func filteredContent(for submittedText: String) -> [String] {
+    private func filteredContent(for submittedText: String) -> [(lineNumber: Int, text: String)] {
         let lines = fileContent.components(separatedBy: "\n")
-        var filteredLines = [String]()
+        var filteredLines = [(lineNumber: Int, text: String)]()
 
-        // Recupera i valori dai settaggi usando UserDefaults
         let linesBefore = UserDefaults.standard.integer(forKey: "linesBefore")
         let linesAfter = UserDefaults.standard.integer(forKey: "linesAfter")
         let isCaseSensitive = UserDefaults.standard.bool(forKey: "caseSensitiveSearch")
+        let isInverted = UserDefaults.standard.bool(forKey: "inverted")
 
         for (index, line) in lines.enumerated() {
-            // Applica la logica di confronto in base alla sensibilità alle maiuscole
-            let doesMatch: Bool
+            var doesMatch: Bool
             if isCaseSensitive {
                 doesMatch = line.contains(submittedText)
             } else {
                 doesMatch = line.lowercased().contains(submittedText.lowercased())
             }
+            if(isInverted) {
+                doesMatch = !doesMatch
+            }
 
             if doesMatch {
-                // Calcola l'intervallo di linee prima della corrispondenza
                 let startRange = max(0, index - linesBefore)
-                let endRange = min(lines.count, index + linesAfter + 1) // Aggiustato per includere la linea dopo
+                let endRange = min(lines.count, index + linesAfter + 1)
 
-                // Aggiungi le linee di contesto prima, la linea corrente e dopo
                 for contextIndex in startRange..<endRange {
                     let contextLine = lines[contextIndex]
-                    // Evita di aggiungere duplicati se ci sono corrispondenze multiple vicine
-                    if !filteredLines.contains(contextLine) {
-                        filteredLines.append(contextLine)
+                    if !filteredLines.contains(where: { $0.lineNumber == contextIndex + 1 }) {
+                        filteredLines.append((lineNumber: contextIndex + 1, text: contextLine))
                     }
                 }
 
-                // Controlla se abbiamo raggiunto il limite massimo di linee
-                if filteredLines.count >= maxLine {
+                if filteredLines.count >= maxLine() {
                     break
                 }
             }
         }
 
-        if(filteredLines.count >= maxLine) {
-            filteredLines.append(messageMaxLine)
+        if(filteredLines.count >= maxLine()) {
+            filteredLines.append((lineNumber: -1, text: messageMaxLine))
         }
 
-        return Array(filteredLines.prefix(maxLine))
+        return Array(filteredLines.prefix(maxLine()))
     }
+
 
     func loadFileContent(from url: URL) -> String {
         searchTabs.removeAll()
