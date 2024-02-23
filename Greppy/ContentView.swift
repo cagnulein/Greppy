@@ -126,12 +126,10 @@ struct ContentView: View {
                         .padding()
                     }
                 TabView(selection: $selectedTabIndex) {
-                    ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in                        
+                    ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
                             List {
-                                var nrOfLines = 0
                                 ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
-                                    nrOfLines = nrOfLines + 1
-                                    if nrOfLines < 20 || isEditing == false {
+                                    if row.lineNumber < 20 || isEditing == false {
                                         HStack {
                                             if(UserDefaults.standard.bool(forKey: "lineNumber")) {
                                                 Text("\(row.lineNumber).")
