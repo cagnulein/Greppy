@@ -127,7 +127,7 @@ struct ContentView: View {
                     }
                 TabView(selection: $selectedTabIndex) {
                     ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
-                        if let currentSearchTerm = searchTabs.indices.contains(selectedTabIndex) ? searchTabs[selectedTabIndex] : "", currentSearchTerm == searchTerm || isEditing == false {
+                        if let currentSearchTerm = searchTabs.indices.contains(selectedTabIndex) ? searchTabs[selectedTabIndex] : nil, currentSearchTerm == searchTerm || isEditing == false {
                             List {
                                 ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
                                     HStack {
