@@ -27,6 +27,7 @@ struct ContentView: View {
     @State private var sheetWasPresented = false
     @State private var bookmarkedLines: [String] = []
     @State private var isEditing: Bool = false
+    @State private var showSaveDocumentPicker = false
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String)] {
         var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
@@ -40,6 +41,13 @@ struct ContentView: View {
         
         return allRows
     }
+
+    func fileGrepped(for submittedText: String) -> String {
+        let filteredLinesTuples = filteredContent(for: submittedText)
+        let allLinesJoined = filteredLinesTuples.map { $0.text }.joined(separator: "\n")
+        return allLinesJoined
+    }
+
     
     func maxLine() -> Int {
         return (UserDefaults.standard.integer(forKey: "maxLines") != 0 ? UserDefaults.standard.integer(forKey: "maxLines") : 2000)
@@ -182,6 +190,31 @@ struct ContentView: View {
                                     } label: {
                                         Label("Close All", systemImage: "xmark")
                                     }
+                                    if(searchTerm != "") {
+                                        Button {
+                                            fileContent = fileGrepped(for: searchTerm)
+                                            if !searchTabs.isEmpty && searchTabs.count > 1 {
+                                                // Rimuovi gli elementi dall'indice 1 fino all'ultimo
+                                                searchTabs.removeSubrange(1...)
+                                            }
+                                        } label: {
+                                            Label("Use as a new source", systemImage: "doc.badge.plus")
+                                        }
+                                        Button {
+                                            self.showSaveDocumentPicker = true
+                                            let temporaryDirectoryURL = FileManager.default.temporaryDirectory
+                                            let temporaryFileURL = temporaryDirectoryURL.appendingPathComponent("ExportedFile.txt")
+                                            
+                                            // Scrivi il contenuto nel file temporaneo
+                                            do {
+                                                try fileGrepped(for: searchTerm).write(to: temporaryFileURL, atomically: true, encoding: .utf8)
+                                            } catch {
+                                                print("Errore durante la scrittura del file: \(error)")
+                                            }
+                                        } label: {
+                                            Label("Export", systemImage: "square.and.arrow.up")
+                                        }
+                                    }
                                 }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
                         }
                 }
@@ -254,6 +287,9 @@ struct ContentView: View {
                 .sheet(isPresented: $showingFilePicker) {
                     DocumentPicker(fileContent: $fileContent)
                 }
+                .sheet(isPresented: $showSaveDocumentPicker) {
+                   SaveDocumentPicker(activityItems: [URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ExportedFile.txt")], applicationActivities: nil)
+                }   
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             .frame(maxWidth: .infinity, maxHeight: .infinity).onAppear(perform: {
                 if(firstLoad == false) {
