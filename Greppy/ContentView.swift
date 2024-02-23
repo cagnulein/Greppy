@@ -202,6 +202,7 @@ struct ContentView: View {
                                             Label("Use as a new source", systemImage: "doc.badge.plus")
                                         }
                                         Button {
+                                            self.showSaveDocumentPicker = true
                                             let temporaryDirectoryURL = FileManager.default.temporaryDirectory
                                             let temporaryFileURL = temporaryDirectoryURL.appendingPathComponent("ExportedFile.txt")
                                             
