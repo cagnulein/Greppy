@@ -85,6 +85,10 @@ struct ContentView: View {
         return attributedString
     }
     
+    func textSize() -> CGFloat {
+        return CGFloat(UserDefaults.standard.integer(forKey: "fontSize") != 0 ? UserDefaults.standard.integer(forKey: "fontSize") : 18)
+    }
+    
     var body: some View {
                 VStack {
                     if showingEditor, let selectedText = selectedText {
@@ -131,11 +135,11 @@ struct ContentView: View {
                                 ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
                                     HStack {
                                         if(UserDefaults.standard.bool(forKey: "lineNumber")) {
-                                            Text("\(row.lineNumber).")
+                                            Text("\(row.lineNumber).").font(.system(size: textSize()))
                                         }
                                         Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
                                             .background(row.text == messageMaxLine ? Color.red : Color.clear)
-                                            .font(.system(size: UserDefaults.standard.integer(forKey: "fontSize") == 0 ?? 14 : UserDefaults.standard.integer(forKey: "fontSize")))
+                                            .font(.system(size: textSize()))
                                             .onTapGesture {
                                                 if(showingEditor) {
                                                     showingEditor = false
