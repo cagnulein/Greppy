@@ -169,6 +169,14 @@ struct ContentView: View {
                                     } label: {
                                         Label("Close", systemImage: "xmark")
                                     }
+                                    Button {
+                                        if !searchTabs.isEmpty && searchTabs.count > 1 {
+                                            // Rimuovi gli elementi dall'indice 1 fino all'ultimo
+                                            searchTabs.removeSubrange(1...)
+                                        }
+                                    } label: {
+                                        Label("Close All", systemImage: "xmark")
+                                    }
                                 }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
                         }
                 }
