@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var userInput: String = ""
     @State private var sheetWasPresented = false
     @State private var bookmarkedLines: [String] = []
+    @State private var isEditing: Bool = false
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String)] {
         var allRows = submittedText.isEmpty
@@ -125,50 +126,52 @@ struct ContentView: View {
                         .padding()
                     }
                 TabView(selection: $selectedTabIndex) {
-                    ForEach(searchTabs, id: \.self) { searchTerm in
-                        List {
-                            ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
-                                HStack {
-                                    if(UserDefaults.standard.bool(forKey: "lineNumber")) {
-                                        Text("\(row.lineNumber).")
+                    ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
+                        if let currentSearchTerm = searchTabs.indices.contains(selectedTabIndex) ? searchTabs[selectedTabIndex] : nil, currentSearchTerm == searchTerm || isEditing == false {
+                            List {
+                                ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
+                                    HStack {
+                                        if(UserDefaults.standard.bool(forKey: "lineNumber")) {
+                                            Text("\(row.lineNumber).")
+                                        }
+                                        Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
+                                            .background(row.text == messageMaxLine ? Color.red : Color.clear)
+                                            .onTapGesture {
+                                                if(showingEditor) {
+                                                    showingEditor = false
+                                                } else {
+                                                    self.selectedText = row.text
+                                                    self.showingEditor = true
+                                                }
+                                            }
                                     }
-                                    Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
-                                        .background(row.text == messageMaxLine ? Color.red : Color.clear)
-                                        .onTapGesture {
-                                            if(showingEditor) {
-                                                showingEditor = false
-                                            } else {
-                                                self.selectedText = row.text
-                                                self.showingEditor = true
+                                }
+                            }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
+                                .onOpenURL(perform: { url in
+                                    fileContent = "Loading..."
+                                    // Esegui la lettura del file in background
+                                    DispatchQueue.global(qos: .userInitiated).async {
+                                        let loadedContent = loadFileContent(from: url)
+                                        
+                                        // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
+                                        DispatchQueue.main.async {
+                                            fileContent = loadedContent
+                                        }
+                                    }
+                                }).tabItem {
+                                    Label(searchTerm == "" ? "Original" : searchTerm, systemImage: "doc.text.magnifyingglass")
+                                }.contextMenu {
+                                    Button {
+                                        if let index = searchTabs.firstIndex(of: searchTerm) {
+                                            if(index > 0) {
+                                                searchTabs.remove(at: index)
                                             }
                                         }
-                                }
-                            }
-                        }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
-                            .onOpenURL(perform: { url in
-                                fileContent = "Loading..."
-                                // Esegui la lettura del file in background
-                                DispatchQueue.global(qos: .userInitiated).async {
-                                    let loadedContent = loadFileContent(from: url)
-                                    
-                                    // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
-                                    DispatchQueue.main.async {
-                                        fileContent = loadedContent
+                                    } label: {
+                                        Label("Close", systemImage: "xmark")
                                     }
-                                }
-                            }).tabItem {
-                                Label(searchTerm == "" ? "Original" : searchTerm, systemImage: "doc.text.magnifyingglass")
-                            }.contextMenu {
-                                Button {
-                                    if let index = searchTabs.firstIndex(of: searchTerm) {
-                                        if(index > 0) {
-                                            searchTabs.remove(at: index)
-                                        }
-                                    }
-                                } label: {
-                                    Label("Close", systemImage: "xmark")
-                                }
-                            }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
+                                }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
+                        }
                     }
                 }
                 
@@ -204,7 +207,16 @@ struct ContentView: View {
                                    }
                                }
                     
-                    TextField("Search", text: $userInput)
+                    TextField("Search", text: $userInput, onEditingChanged: { editing in
+                                    self.isEditing = editing
+                                    if editing {
+                                        // L'utente ha iniziato la modifica
+                                        print("Inizio modifica")
+                                    } else {
+                                        // L'utente ha terminato la modifica
+                                        print("Fine modifica")
+                                    }
+                                })
                                 .padding()
                                 .accessibilityIdentifier("searchBox")
                                 .submitLabel(.done) // Imposta la label del tasto di invio a "Done"
