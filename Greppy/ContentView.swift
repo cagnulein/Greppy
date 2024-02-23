@@ -213,7 +213,7 @@ struct ContentView: View {
                                                 print("Errore durante la scrittura del file: \(error)")
                                             }
                                         } label: {
-                                            Label("Export", systemImage: "doc.badge.plus")
+                                            Label("Export", systemImage: "square.and.arrow.up")
                                         }
                                     }
                                 }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
