@@ -207,7 +207,7 @@ struct ContentView: View {
                                             
                                             // Scrivi il contenuto nel file temporaneo
                                             do {
-                                                try content.write(to: temporaryFileURL, atomically: true, encoding: .utf8)
+                                                try fileGrepped(for: searchTerm).write(to: temporaryFileURL, atomically: true, encoding: .utf8)
                                             } catch {
                                                 print("Errore durante la scrittura del file: \(error)")
                                             }
