@@ -15,7 +15,7 @@ struct settingLinesBeforeAfterView: View {
     @AppStorage("maxLines") private var maxLines = 2000
     @AppStorage("lineNumber") private var lineNumber = false
     @AppStorage("inverted") private var inverted = false
-    @AppStorage("fontSize") private var fontSize = false
+    @AppStorage("fontSize") private var fontSize = 14
     
     private var appVersion: String {
         (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "N/A"
