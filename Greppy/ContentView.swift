@@ -28,7 +28,6 @@ struct ContentView: View {
     @State private var bookmarkedLines: [String] = []
     @State private var isEditing: Bool = false
     @State private var showSaveDocumentPicker = false
-    @State private var saveDocumentContent = ""    
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String)] {
         var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
