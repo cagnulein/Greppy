@@ -3,26 +3,15 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct SaveDocumentPicker: UIViewControllerRepresentable {
-    var documentContent: String
-    var contentType: UTType = .plainText // Assicurati di importare UniformTypeIdentifiers
-    
-    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let temporaryDirectoryURL = FileManager.default.temporaryDirectory
-        let temporaryFileURL = temporaryDirectoryURL.appendingPathComponent("ExportedFile.txt")
-        
-        // Scrivi il contenuto nel file temporaneo
-        do {
-            try documentContent.write(to: temporaryFileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("Errore durante la scrittura del file: \(error)")
-        }
-        
-        let picker = UIDocumentPickerViewController(forExporting: [temporaryFileURL])
-        picker.shouldShowFileExtensions = true // Mostra le estensioni dei file se necessario
-        return picker
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]?
+
+    func makeUIViewController(context: UIViewControllerRepresentableContext<ActivityView>) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+        return controller
     }
     
-    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {
-        // Non è necessario aggiornare il picker in questo caso
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: UIViewControllerRepresentableContext<ActivityView>) {
+        // Non è necessario aggiornare il controller in questo contesto.
     }
 }

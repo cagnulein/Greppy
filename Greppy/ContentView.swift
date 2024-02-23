@@ -207,14 +207,7 @@ struct ContentView: View {
                                             
                                             // Scrivi il contenuto nel file temporaneo
                                             do {
-                                                try fileGrepped(for: searchTerm).write(to: temporaryFileURL, atomically: true, encoding: .utf8)
-                                                
-                                                // Prepara UIActivityViewController
-                                                let activityVC = UIActivityViewController(activityItems: [temporaryFileURL], applicationActivities: nil)
-                                                
-                                                // Presenta UIActivityViewController
-                                                // Nota: Questo richiederà l'uso di UIKit per presentare la vista. In SwiftUI, potresti dover utilizzare UIViewControllerRepresentable.
-                                                
+                                                try content.write(to: temporaryFileURL, atomically: true, encoding: .utf8)
                                             } catch {
                                                 print("Errore durante la scrittura del file: \(error)")
                                             }
@@ -295,8 +288,8 @@ struct ContentView: View {
                     DocumentPicker(fileContent: $fileContent)
                 }
                 .sheet(isPresented: $showSaveDocumentPicker) {
-                    SaveDocumentPicker(documentContent: saveDocumentContent)
-                }
+                   SaveDocumentPicker(activityItems: [URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ExportedFile.txt")], applicationActivities: nil)
+                }   
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             .frame(maxWidth: .infinity, maxHeight: .infinity).onAppear(perform: {
                 if(firstLoad == false) {
