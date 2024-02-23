@@ -126,24 +126,27 @@ struct ContentView: View {
                         .padding()
                     }
                 TabView(selection: $selectedTabIndex) {
-                    ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
-                        if let currentSearchTerm = searchTabs.indices.contains(selectedTabIndex) ? searchTabs[selectedTabIndex] : nil, currentSearchTerm == searchTerm || isEditing == false {
+                    ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in                        
                             List {
+                                var nrOfLines = 0
                                 ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
-                                    HStack {
-                                        if(UserDefaults.standard.bool(forKey: "lineNumber")) {
-                                            Text("\(row.lineNumber).")
-                                        }
-                                        Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
-                                            .background(row.text == messageMaxLine ? Color.red : Color.clear)
-                                            .onTapGesture {
-                                                if(showingEditor) {
-                                                    showingEditor = false
-                                                } else {
-                                                    self.selectedText = row.text
-                                                    self.showingEditor = true
-                                                }
+                                    nrOfLines = nrOfLines + 1
+                                    if nrOfLines < 20 || isEditing == false {
+                                        HStack {
+                                            if(UserDefaults.standard.bool(forKey: "lineNumber")) {
+                                                Text("\(row.lineNumber).")
                                             }
+                                            Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
+                                                .background(row.text == messageMaxLine ? Color.red : Color.clear)
+                                                .onTapGesture {
+                                                    if(showingEditor) {
+                                                        showingEditor = false
+                                                    } else {
+                                                        self.selectedText = row.text
+                                                        self.showingEditor = true
+                                                    }
+                                            }
+                                        }
                                     }
                                 }
                             }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
@@ -172,7 +175,6 @@ struct ContentView: View {
                                     }
                                 }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
                         }
-                    }
                 }
                 
                 HStack {
