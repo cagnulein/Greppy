@@ -206,8 +206,6 @@ struct ContentView: View {
                                             showSaveDocumentPicker = true
                                         } label: {
                                             Label("Export", systemImage: "doc.badge.plus")
-                                        }.sheet(isPresented: $showSaveDocumentPicker) {
-                                           SaveDocumentPicker(documentContent: saveDocumentContent)
                                         }
                                     }
                                 }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
@@ -281,6 +279,9 @@ struct ContentView: View {
                 // Mostra il picker quando showingFilePicker è true
                 .sheet(isPresented: $showingFilePicker) {
                     DocumentPicker(fileContent: $fileContent)
+                }
+                .sheet(isPresented: $showSaveDocumentPicker) {
+                    SaveDocumentPicker(documentContent: saveDocumentContent)
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             .frame(maxWidth: .infinity, maxHeight: .infinity).onAppear(perform: {
