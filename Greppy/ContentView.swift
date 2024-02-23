@@ -29,7 +29,7 @@ struct ContentView: View {
     @State private var isEditing: Bool = false
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String)] {
-        var allRows = submittedText.isEmpty
+        var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
             ? fileContent.components(separatedBy: "\n").enumerated().map { (lineNumber: $0.offset + 1, text: $0.element) }
             : filteredContent(for: submittedText)
         
@@ -129,21 +129,19 @@ struct ContentView: View {
                     ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
                             List {
                                 ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
-                                    if row.lineNumber < 20 || isEditing == false {
-                                        HStack {
-                                            if(UserDefaults.standard.bool(forKey: "lineNumber")) {
-                                                Text("\(row.lineNumber).")
-                                            }
-                                            Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
-                                                .background(row.text == messageMaxLine ? Color.red : Color.clear)
-                                                .onTapGesture {
-                                                    if(showingEditor) {
-                                                        showingEditor = false
-                                                    } else {
-                                                        self.selectedText = row.text
-                                                        self.showingEditor = true
-                                                    }
-                                            }
+                                    HStack {
+                                        if(UserDefaults.standard.bool(forKey: "lineNumber")) {
+                                            Text("\(row.lineNumber).")
+                                        }
+                                        Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
+                                            .background(row.text == messageMaxLine ? Color.red : Color.clear)
+                                            .onTapGesture {
+                                                if(showingEditor) {
+                                                    showingEditor = false
+                                                } else {
+                                                    self.selectedText = row.text
+                                                    self.showingEditor = true
+                                                }
                                         }
                                     }
                                 }
