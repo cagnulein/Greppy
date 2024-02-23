@@ -27,6 +27,8 @@ struct ContentView: View {
     @State private var sheetWasPresented = false
     @State private var bookmarkedLines: [String] = []
     @State private var isEditing: Bool = false
+    @State private var showSaveDocumentPicker = false
+    @State private var saveDocumentContent = ""    
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String)] {
         var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
@@ -198,6 +200,14 @@ struct ContentView: View {
                                             }
                                         } label: {
                                             Label("Use as a new source", systemImage: "doc.badge.plus")
+                                        }
+                                        Button {
+                                            saveDocumentContent = fileGrepped(for: searchTerm)
+                                            showSaveDocumentPicker = true
+                                        } label: {
+                                            Label("Export", systemImage: "doc.badge.plus")
+                                        }.sheet(isPresented: $showSaveDocumentPicker) {
+                                           SaveDocumentPicker(documentContent: saveDocumentContent)
                                         }
                                     }
                                 }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
