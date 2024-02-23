@@ -15,6 +15,7 @@ struct settingLinesBeforeAfterView: View {
     @AppStorage("maxLines") private var maxLines = 2000
     @AppStorage("lineNumber") private var lineNumber = false
     @AppStorage("inverted") private var inverted = false
+    @AppStorage("fontSize") private var fontSize = false
     
     private var appVersion: String {
         (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "N/A"
@@ -32,6 +33,9 @@ struct settingLinesBeforeAfterView: View {
                     Toggle("Case Sensitive", isOn: $caseSensitiveSearch)
                     Toggle("Invert Match", isOn: $inverted)
                     Toggle("Line Numbers", isOn: $lineNumber)
+                    Stepper(value: $fontSize, in: 6...32) {
+                        Text("Font Size: \(fontSize)")
+                    }                    
                     Stepper(value: $maxLines, in: 1000...10000, step: 100) {
                         Text("Max Output Lines: \(maxLines)")
                     }

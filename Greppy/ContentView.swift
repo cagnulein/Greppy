@@ -135,6 +135,7 @@ struct ContentView: View {
                                         }
                                         Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
                                             .background(row.text == messageMaxLine ? Color.red : Color.clear)
+                                            .font(.system(size: UserDefaults.standard.integer(forKey: "fontSize") == 0 ?? 14 : UserDefaults.standard.integer(forKey: "fontSize")))
                                             .onTapGesture {
                                                 if(showingEditor) {
                                                     showingEditor = false
