@@ -202,8 +202,22 @@ struct ContentView: View {
                                             Label("Use as a new source", systemImage: "doc.badge.plus")
                                         }
                                         Button {
-                                            saveDocumentContent = fileGrepped(for: searchTerm)
-                                            showSaveDocumentPicker = true
+                                            let temporaryDirectoryURL = FileManager.default.temporaryDirectory
+                                            let temporaryFileURL = temporaryDirectoryURL.appendingPathComponent("ExportedFile.txt")
+                                            
+                                            // Scrivi il contenuto nel file temporaneo
+                                            do {
+                                                try fileGrepped(for: searchTerm).write(to: temporaryFileURL, atomically: true, encoding: .utf8)
+                                                
+                                                // Prepara UIActivityViewController
+                                                let activityVC = UIActivityViewController(activityItems: [temporaryFileURL], applicationActivities: nil)
+                                                
+                                                // Presenta UIActivityViewController
+                                                // Nota: Questo richiederà l'uso di UIKit per presentare la vista. In SwiftUI, potresti dover utilizzare UIViewControllerRepresentable.
+                                                
+                                            } catch {
+                                                print("Errore durante la scrittura del file: \(error)")
+                                            }
                                         } label: {
                                             Label("Export", systemImage: "doc.badge.plus")
                                         }
