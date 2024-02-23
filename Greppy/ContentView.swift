@@ -40,6 +40,13 @@ struct ContentView: View {
         
         return allRows
     }
+
+    func fileGrepped(for submittedText: String) {
+        let filteredLinesTuples = filteredContent(for: submittedText)
+        let allLinesJoined = filteredLinesTuples.map { $0.text }.joined(separator: "\n")
+        return allLinesJoined
+    }
+
     
     func maxLine() -> Int {
         return (UserDefaults.standard.integer(forKey: "maxLines") != 0 ? UserDefaults.standard.integer(forKey: "maxLines") : 2000)
@@ -181,6 +188,15 @@ struct ContentView: View {
                                         }
                                     } label: {
                                         Label("Close All", systemImage: "xmark")
+                                    }
+                                    Button {
+                                        fileContent = fileGrepped(for: searchTerm)
+                                        if !searchTabs.isEmpty && searchTabs.count > 1 {
+                                            // Rimuovi gli elementi dall'indice 1 fino all'ultimo
+                                            searchTabs.removeSubrange(1...)
+                                        }
+                                    } label: {
+                                        Label("Use as a new source", systemImage: "xmark")
                                     }
                                 }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
                         }
