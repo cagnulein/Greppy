@@ -316,6 +316,9 @@ struct ContentView: View {
     }
     
     func addNewSearchTab(searchText: String) {
+        if(searchText.isEmpty && searchTabs.count == 1) {
+            return // only one "Original"
+        }
         searchTabs.append(searchText) // Aggiungi il nuovo termine di ricerca alla lista dei tab
         selectedTabIndex = searchTabs.count - 1
         print("selectedTabIndex \(selectedTabIndex)")
