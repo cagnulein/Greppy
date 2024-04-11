@@ -379,7 +379,7 @@ struct ContentView: View {
         addNewSearchTab(searchText: "")
 
         do {
-            let fileData = try Data(contentsOf: URL(fileURLWithPath: url))
+            let fileData = try Data(contentsOf: url)
         
             var encoding: String.Encoding = .utf8 // Encoding predefinito
             
