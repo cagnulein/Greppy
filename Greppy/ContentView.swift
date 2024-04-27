@@ -173,24 +173,24 @@ struct ContentView: View {
                                 }).tabItem {
                                     Label(searchTerm == "" ? "Original" : searchTerm, systemImage: "doc.text.magnifyingglass")
                                 }.contextMenu {
-                                    Button {
-                                        if let index = searchTabs.firstIndex(of: searchTerm) {
-                                            if(index > 0) {
-                                                searchTabs.remove(at: index)
-                                            }
-                                        }
-                                    } label: {
-                                        Label("Close", systemImage: "xmark")
-                                    }
-                                    Button {
-                                        if !searchTabs.isEmpty && searchTabs.count > 1 {
-                                            // Rimuovi gli elementi dall'indice 1 fino all'ultimo
-                                            searchTabs.removeSubrange(1...)
-                                        }
-                                    } label: {
-                                        Label("Close All", systemImage: "xmark")
-                                    }
                                     if(searchTerm != "") {
+                                        Button {
+                                            if let index = searchTabs.firstIndex(of: searchTerm) {
+                                                if(index > 0) {
+                                                    searchTabs.remove(at: index)
+                                                }
+                                            }
+                                        } label: {
+                                            Label("Close", systemImage: "xmark")
+                                        }
+                                        Button {
+                                            if !searchTabs.isEmpty && searchTabs.count > 1 {
+                                                // Rimuovi gli elementi dall'indice 1 fino all'ultimo
+                                                searchTabs.removeSubrange(1...)
+                                            }
+                                        } label: {
+                                            Label("Close All", systemImage: "xmark")
+                                        }
                                         Button {
                                             fileContent = fileGrepped(for: searchTerm)
                                             if !searchTabs.isEmpty && searchTabs.count > 1 {
@@ -212,7 +212,21 @@ struct ContentView: View {
                                                 print("Errore durante la scrittura del file: \(error)")
                                             }
                                         } label: {
-                                            Label("Export", systemImage: "square.and.arrow.up")
+                                            Label("Share", systemImage: "square.and.arrow.up")
+                                        }
+                                    } else {
+                                        Button {
+                                            if let clipboardString = UIPasteboard.general.string {
+                                                fileContent = clipboardString
+                                            } else {
+                                                fileContent = "Clipboard is empty or does not contain text."
+                                            }
+                                            if !searchTabs.isEmpty && searchTabs.count > 1 {
+                                                // Rimuovi gli elementi dall'indice 1 fino all'ultimo
+                                                searchTabs.removeSubrange(1...)
+                                            }
+                                        } label: {
+                                            Label("Paste from Clipboard", systemImage: "clipboard")
                                         }
                                     }
                                 }.tag(Int(searchTabs.firstIndex(of: searchTerm) ?? 0))
