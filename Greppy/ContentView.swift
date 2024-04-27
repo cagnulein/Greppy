@@ -379,7 +379,7 @@ struct ContentView: View {
         addNewSearchTab(searchText: "")
         // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
         do {
-            return try String(contentsOf: url, encoding: .utf8)
+            return try String(contentsOf: url)
         } catch {
             print("Errore nella lettura del file: \(error)")
             return "Errore nella lettura del file \(error.localizedDescription)"
