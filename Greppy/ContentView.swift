@@ -377,19 +377,9 @@ struct ContentView: View {
         bookmarkedLines = []
         searchTabs.removeAll()
         addNewSearchTab(searchText: "")
-
+        // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
         do {
-            let fileData = try Data(contentsOf: URL(fileURLWithPath: url))
-        
-            var encoding: String.Encoding = .utf8 // Encoding predefinito
-            
-            // Prova a rilevare l'encoding
-            let detectedEncoding = NSString.stringEncoding(for: fileData, encodingOptions: nil, convertedString: nil, usedLossyConversion: nil)
-            if detectedEncoding != 0 {
-                encoding = String.Encoding(rawValue: detectedEncoding)
-            }
-            
-            return try String(contentsOf: url, encoding: encoding)
+            return try String(contentsOf: url, encoding: .utf8)
         } catch {
             print("Errore nella lettura del file: \(error)")
             return "Errore nella lettura del file \(error.localizedDescription)"
