@@ -16,6 +16,7 @@ struct settingLinesBeforeAfterView: View {
     @AppStorage("lineNumber") private var lineNumber = false
     @AppStorage("inverted") private var inverted = false
     @AppStorage("fontSize") private var fontSize = 18
+    @AppStorage("regEx") private var regEx = false
     
     private var appVersion: String {
         (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "N/A"
@@ -32,6 +33,7 @@ struct settingLinesBeforeAfterView: View {
                 Section(header: Text("Search")) {
                     Toggle("Case Sensitive", isOn: $caseSensitiveSearch)
                     Toggle("Invert Match", isOn: $inverted)
+                    Toggle("RegEx", isOn: $regEx)
                     Toggle("Line Numbers", isOn: $lineNumber)
                     Stepper(value: $fontSize, in: 6...32) {
                         Text("Font Size: \(fontSize)")

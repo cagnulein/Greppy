@@ -346,18 +346,22 @@ struct ContentView: View {
         let linesAfter = UserDefaults.standard.integer(forKey: "linesAfter")
         let isCaseSensitive = UserDefaults.standard.bool(forKey: "caseSensitiveSearch")
         let isInverted = UserDefaults.standard.bool(forKey: "inverted")
+        let isRegEx = UserDefaults.standard.bool(forKey: "regEx")
 
         for (index, line) in lines.enumerated() {
             var doesMatch: Bool
-            if isCaseSensitive {
+            if isRegEx {
+                let predicate = NSPredicate(format: "SELF MATCHES %@", submittedText)
+                doesMatch = predicate.evaluate(with: line)
+            } else if isCaseSensitive {
                 doesMatch = line.contains(submittedText)
             } else {
                 doesMatch = line.lowercased().contains(submittedText.lowercased())
             }
-            if(isInverted) {
+            if isInverted {
                 doesMatch = !doesMatch
             }
-            
+
             if let index = bookmarkedLines.firstIndex(of: line) {
                 doesMatch = true
             }
@@ -385,6 +389,7 @@ struct ContentView: View {
 
         return Array(filteredLines.prefix(maxLine()))
     }
+
 
 
     func loadFileContent(from url: URL) -> String {
