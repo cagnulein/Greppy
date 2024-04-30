@@ -58,7 +58,12 @@ struct ContentView: View {
         let isInverted = UserDefaults.standard.bool(forKey: "inverted")
         var attributedString = AttributedString(fullText)
         
-        var foundMatch = false // Flag per tenere traccia se abbiamo trovato almeno un match
+        if(isEditing) {
+            return attributedString
+        }
+        
+        // Determina le opzioni di ricerca in base alla sensibilità alle maiuscole e minuscole
+        let options: String.CompareOptions = isCaseSensitive ? [] : .caseInsensitive
         
         if let isRegex = UserDefaults.standard.bool(forKey: "regEx"), isRegex {
             // Utilizza NSRegularExpression per trovare tutte le corrispondenze con l'espressione regolare
@@ -368,7 +373,7 @@ struct ContentView: View {
         for (index, line) in lines.enumerated() {
             var doesMatch: Bool
             if isRegEx {
-                let regex = try! NSRegularExpression(pattern: line, options: [.caseSensitive])
+                let regex = try! NSRegularExpression(pattern: line, options: [])
                 let range = NSRange(location: 0, length: submittedText.count)
                 let matches = regex.matches(in: submittedText, options: [], range: range)
                 doesMatch = matches.first != nil
