@@ -53,6 +53,20 @@ struct ContentView: View {
         return (UserDefaults.standard.integer(forKey: "maxLines") != 0 ? UserDefaults.standard.integer(forKey: "maxLines") : 2000)
     }
 
+    func regExMatches(for regex: String, in text: String) -> [String] {
+
+        do {
+            let regex = try NSRegularExpression(pattern: regex)
+            let results = regex.matches(in: text,
+                                        range: NSRange(text.startIndex..., in: text))
+            return results.map {
+                String(text[Range($0.range, in: text)!])
+            }
+        } catch let error {
+            print("invalid regex: \(error.localizedDescription)")
+            return []
+        }
+    }
     
     func makeAttributedString(fullText: String, highlight: String, isCaseSensitive: Bool) -> AttributedString {
         let isInverted = UserDefaults.standard.bool(forKey: "inverted")
@@ -67,7 +81,7 @@ struct ContentView: View {
         // Determina le opzioni di ricerca in base alla sensibilità alle maiuscole e minuscole
         let options: String.CompareOptions = isCaseSensitive ? [] : .caseInsensitive
         
-        if let isRegex = UserDefaults.standard.bool(forKey: "regEx"), isRegex {
+        if UserDefaults.standard.bool(forKey: "regEx") {
             // Utilizza NSRegularExpression per trovare tutte le corrispondenze con l'espressione regolare
             do {
                 let regex = try NSRegularExpression(pattern: highlight)
@@ -75,9 +89,19 @@ struct ContentView: View {
                 let matches = regex.matches(in: fullText, options: [], range: range)
                 
                 for match in matches {
-                    let matchRange = Range(match.range, in: fullText)!
-                    attributedString[matchRange].backgroundColor = .yellow
-                    attributedString[matchRange].foregroundColor = .red
+                    for l in regExMatches(highlight, fullText) {
+                        let options: String.CompareOptions = .caseInsensitive
+                        var currentIndex = fullText.startIndex
+                        
+                        while let range = fullText.range(of: highlight, options: options, range: currentIndex..<fullText.endIndex), !range.isEmpty {
+                            foundMatch = true
+                            if let attributedRange = Range<AttributedString.Index>(range, in: attributedString) {
+                                attributedString[attributedRange].backgroundColor = .yellow
+                                attributedString[attributedRange].foregroundColor = .red
+                            }
+                            currentIndex = range.upperBound
+                        }                        
+                    }
                 }
                 
                 if !matches.isEmpty {
