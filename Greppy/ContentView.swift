@@ -355,8 +355,10 @@ struct ContentView: View {
         for (index, line) in lines.enumerated() {
             var doesMatch: Bool
             if isRegEx {
-                let predicate = NSPredicate(format: "SELF MATCHES %@", submittedText)
-                doesMatch = predicate.evaluate(with: line)
+                let regex = try! NSRegularExpression(pattern: line, options: [.caseSensitive])
+                let range = NSRange(location: 0, length: submittedText.count)
+                let matches = regex.matches(in: submittedText, options: [], range: range)
+                doesMatch = matches.first != nil
             } else if isCaseSensitive {
                 doesMatch = line.contains(submittedText)
             } else {
