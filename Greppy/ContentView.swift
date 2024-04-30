@@ -355,7 +355,7 @@ struct ContentView: View {
         for (index, line) in lines.enumerated() {
             var doesMatch: Bool
             if isRegEx {
-                let regex = try! NSRegularExpression(pattern: line, options: [.caseSensitive])
+                let regex = try! NSRegularExpression(pattern: line, options: [])
                 let range = NSRange(location: 0, length: submittedText.count)
                 let matches = regex.matches(in: submittedText, options: [], range: range)
                 doesMatch = matches.first != nil
