@@ -61,6 +61,8 @@ struct ContentView: View {
         if(isEditing) {
             return attributedString
         }
+
+        var foundMatch = false // Flag per tenere traccia se abbiamo trovato almeno un match
         
         // Determina le opzioni di ricerca in base alla sensibilità alle maiuscole e minuscole
         let options: String.CompareOptions = isCaseSensitive ? [] : .caseInsensitive
