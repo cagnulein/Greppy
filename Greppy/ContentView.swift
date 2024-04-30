@@ -89,11 +89,11 @@ struct ContentView: View {
                 let matches = regex.matches(in: fullText, options: [], range: range)
                 
                 for match in matches {
-                    for l in regExMatches(highlight, fullText) {
-                        let options: String.CompareOptions = .caseInsensitive
+                    for l in regExMatches(for: highlight, in: fullText) {
+                        let options: String.CompareOptions = []
                         var currentIndex = fullText.startIndex
                         
-                        while let range = fullText.range(of: highlight, options: options, range: currentIndex..<fullText.endIndex), !range.isEmpty {
+                        while let range = fullText.range(of: l, options: options, range: currentIndex..<fullText.endIndex), !range.isEmpty {
                             foundMatch = true
                             if let attributedRange = Range<AttributedString.Index>(range, in: attributedString) {
                                 attributedString[attributedRange].backgroundColor = .yellow
