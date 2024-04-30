@@ -58,6 +58,10 @@ struct ContentView: View {
         let isInverted = UserDefaults.standard.bool(forKey: "inverted")
         var attributedString = AttributedString(fullText)
         
+        if(isEditing) {
+            return attributedString
+        }
+        
         // Determina le opzioni di ricerca in base alla sensibilità alle maiuscole e minuscole
         let options: String.CompareOptions = isCaseSensitive ? [] : .caseInsensitive
         
