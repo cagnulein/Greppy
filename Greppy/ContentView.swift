@@ -90,7 +90,7 @@ struct ContentView: View {
             // Puoi impostare qui altri stili di default se necessario
         }
         
-        if let index = bookmarkedLines.firstIndex(of: fullText) {
+        if bookmarkedLines.firstIndex(of: fullText) != nil {
             attributedString.foregroundColor = .blue
         }
         
@@ -355,10 +355,14 @@ struct ContentView: View {
         for (index, line) in lines.enumerated() {
             var doesMatch: Bool
             if isRegEx {
-                let regex = try! NSRegularExpression(pattern: line, options: [])
-                let range = NSRange(location: 0, length: submittedText.count)
-                let matches = regex.matches(in: submittedText, options: [], range: range)
-                doesMatch = matches.first != nil
+                do {
+                    let regex = try NSRegularExpression(pattern: submittedText, options: [])
+                    let range = NSRange(location: 0, length: line.utf16.count)
+                    let matches = regex.matches(in: line, options: [], range: range)
+                    doesMatch = matches.first != nil
+                } catch {
+                    doesMatch = false
+                }
             } else if isCaseSensitive {
                 doesMatch = line.contains(submittedText)
             } else {
@@ -368,7 +372,7 @@ struct ContentView: View {
                 doesMatch = !doesMatch
             }
 
-            if let index = bookmarkedLines.firstIndex(of: line) {
+            if bookmarkedLines.firstIndex(of: line) != nil {
                 doesMatch = true
             }
 
