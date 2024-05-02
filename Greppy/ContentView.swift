@@ -197,7 +197,8 @@ struct ContentView: View {
                                             .background(row.text == messageMaxLine ? Color.red : Color.clear)
                                             .font(.system(size: textSize()))
                                             .onAppear {
-                                                self.text = makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch"))
+                                                // Call makeAttributedString when the row appears
+                                                self.attributedText = makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch"))
                                             }
                                             .onTapGesture {
                                                 if(showingEditor) {
