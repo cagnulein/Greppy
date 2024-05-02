@@ -461,7 +461,7 @@ struct ContentView: View {
         addNewSearchTab(searchText: "")
         // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
         do {
-            return try Coordinator.readWithMultipleEncodings(from: url)
+            return try FileHelper.readWithMultipleEncodings(from: url)
         } catch {
             print("Errore nella lettura del file: \(error)")
             return "Errore nella lettura del file \(error.localizedDescription)"
@@ -506,7 +506,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
             }
             
             do {
-                let fileContent = try readWithMultipleEncodings(from: selectedFileURL)
+                let fileContent = try FilerHelper.readWithMultipleEncodings(from: selectedFileURL)
                 DispatchQueue.main.async {
                     self.parent.fileContent = fileContent
                 }
@@ -514,50 +514,52 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 print("Unable to read file content: \(error)")
             }
         }        
-
-        public static func readWithMultipleEncodings(from fileURL: URL) throws -> String {
-            let encodings: [String.Encoding] = [
-                .ascii,
-                .nextstep,
-                .japaneseEUC,
-                .utf8,
-                .isoLatin1,
-                .symbol,
-                .nonLossyASCII,
-                .shiftJIS,
-                .isoLatin2,
-                .unicode,
-                .windowsCP1251,
-                .windowsCP1252,
-                .windowsCP1253,
-                .windowsCP1254,
-                .windowsCP1250,
-                .iso2022JP,
-                .macOSRoman,
-                .utf16,
-                .utf16BigEndian,
-                .utf16LittleEndian,
-                .utf32,
-                .utf32BigEndian,
-                .utf32LittleEndian
-            ]
-            
-            var fileContent: String = ""
-            
-            for encoding in encodings {
-                do {
-                    fileContent = try String(contentsOf: fileURL, encoding: encoding)
-                    break // Stop iterating if successful
-                } catch {
-                    print("Failed to read file content with encoding \(encoding): \(error)")
-                }
-            }
-            
-            guard !fileContent.isEmpty else {
-                throw NSError(domain: "EncodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unable to read file with any encoding."])
-            }
-            
-            return fileContent
-        }   
     }    
+}
+
+class FileHelper {
+    public static func readWithMultipleEncodings(from fileURL: URL) throws -> String {
+        let encodings: [String.Encoding] = [
+            .ascii,
+            .nextstep,
+            .japaneseEUC,
+            .utf8,
+            .isoLatin1,
+            .symbol,
+            .nonLossyASCII,
+            .shiftJIS,
+            .isoLatin2,
+            .unicode,
+            .windowsCP1251,
+            .windowsCP1252,
+            .windowsCP1253,
+            .windowsCP1254,
+            .windowsCP1250,
+            .iso2022JP,
+            .macOSRoman,
+            .utf16,
+            .utf16BigEndian,
+            .utf16LittleEndian,
+            .utf32,
+            .utf32BigEndian,
+            .utf32LittleEndian
+        ]
+        
+        var fileContent: String = ""
+        
+        for encoding in encodings {
+            do {
+                fileContent = try String(contentsOf: fileURL, encoding: encoding)
+                break // Stop iterating if successful
+            } catch {
+                print("Failed to read file content with encoding \(encoding): \(error)")
+            }
+        }
+        
+        guard !fileContent.isEmpty else {
+            throw NSError(domain: "EncodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unable to read file with any encoding."])
+        }
+        
+        return fileContent
+    }   
 }
