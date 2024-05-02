@@ -397,15 +397,7 @@ struct ContentView: View {
         let isRegEx = UserDefaults.standard.bool(forKey: "regEx")
         let isReverse = UserDefaults.standard.bool(forKey: "reverse")
 
-        // Determine the range for iteration based on the reverse flag
-        let iterationRange: CountableRange<Int>
-        if isReverse {
-            iterationRange = (0..<lines.count).reversed()
-        } else {
-            iterationRange = 0..<lines.count
-        }
-
-        for index in iterationRange {
+        for (index, line) in lines.enumerated() {
             let line = lines[index]
             var doesMatch: Bool
             if isRegEx {
@@ -451,7 +443,14 @@ struct ContentView: View {
             filteredLines.append((lineNumber: -1, text: messageMaxLine))
         }
 
-        return Array(filteredLines.prefix(maxLine()))
+
+        var result = Array(filteredLines.prefix(maxLine()))
+
+        if isReverse {
+            result.reverse()
+        }
+
+        return result
     }
 
 
