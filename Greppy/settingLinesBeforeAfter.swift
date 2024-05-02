@@ -35,7 +35,7 @@ struct settingLinesBeforeAfterView: View {
                     Toggle("Case Sensitive", isOn: $caseSensitiveSearch)
                     Toggle("Invert Match", isOn: $inverted)
                     Toggle("Start from the end of the file", isOn: $reverse)
-                    Toggle("RegEx", isOn: $regEx)
+                    Toggle("Regular Expressions", isOn: $regEx)
                     Toggle("Line Numbers", isOn: $lineNumber)
                     Stepper(value: $fontSize, in: 6...32) {
                         Text("Font Size: \(fontSize)")
