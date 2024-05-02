@@ -395,8 +395,18 @@ struct ContentView: View {
         let isCaseSensitive = UserDefaults.standard.bool(forKey: "caseSensitiveSearch")
         let isInverted = UserDefaults.standard.bool(forKey: "inverted")
         let isRegEx = UserDefaults.standard.bool(forKey: "regEx")
+        let isReverse = UserDefaults.standard.bool(forKey: "reverse")
 
-        for (index, line) in lines.enumerated() {
+        // Determine the range for iteration based on the reverse flag
+        let iterationRange: CountableRange<Int>
+        if isReverse {
+            iterationRange = (0..<lines.count).reversed()
+        } else {
+            iterationRange = 0..<lines.count
+        }
+
+        for index in iterationRange {
+            let line = lines[index]
             var doesMatch: Bool
             if isRegEx {
                 do {
@@ -459,7 +469,7 @@ struct ContentView: View {
         }
     }
 
-    private func readWithMultipleEncodings(from fileURL: URL) throws -> String {
+    public func readWithMultipleEncodings(from fileURL: URL) throws -> String {
             let encodings: [String.Encoding] = [
                 .ascii,
                 .nextstep,
@@ -542,58 +552,13 @@ struct DocumentPicker: UIViewControllerRepresentable {
             }
             
             do {
-                let fileContent = try readWithMultipleEncodings(from: selectedFileURL)
+                let fileContent = try self.parent.readWithMultipleEncodings(from: selectedFileURL)
                 DispatchQueue.main.async {
                     self.parent.fileContent = fileContent
                 }
             } catch {
                 print("Unable to read file content: \(error)")
             }
-        }        
-
-        private func readWithMultipleEncodings(from fileURL: URL) throws -> String {
-            let encodings: [String.Encoding] = [
-                .ascii,
-                .nextstep,
-                .japaneseEUC,
-                .utf8,
-                .isoLatin1,
-                .symbol,
-                .nonLossyASCII,
-                .shiftJIS,
-                .isoLatin2,
-                .unicode,
-                .windowsCP1251,
-                .windowsCP1252,
-                .windowsCP1253,
-                .windowsCP1254,
-                .windowsCP1250,
-                .iso2022JP,
-                .macOSRoman,
-                .utf16,
-                .utf16BigEndian,
-                .utf16LittleEndian,
-                .utf32,
-                .utf32BigEndian,
-                .utf32LittleEndian
-            ]
-            
-            var fileContent: String = ""
-            
-            for encoding in encodings {
-                do {
-                    fileContent = try String(contentsOf: fileURL, encoding: encoding)
-                    break // Stop iterating if successful
-                } catch {
-                    print("Failed to read file content with encoding \(encoding): \(error)")
-                }
-            }
-            
-            guard !fileContent.isEmpty else {
-                throw NSError(domain: "EncodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unable to read file with any encoding."])
-            }
-            
-            return fileContent
         }        
     }    
 }
