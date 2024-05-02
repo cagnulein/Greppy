@@ -462,14 +462,61 @@ struct ContentView: View {
         addNewSearchTab(searchText: "")
         // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
         do {
-            return try readWithMultipleEncodings(from: url)
+            return try Coordinator.readWithMultipleEncodings(from: url)
         } catch {
             print("Errore nella lettura del file: \(error)")
             return "Errore nella lettura del file \(error.localizedDescription)"
         }
+    }         
+}
+
+struct DocumentPicker: UIViewControllerRepresentable {
+    @Binding var fileContent: String
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText], asCopy: true)
+        picker.delegate = context.coordinator
+        return picker
     }
 
-    public func readWithMultipleEncodings(from fileURL: URL) throws -> String {
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        var parent: DocumentPicker
+
+        init(_ documentPicker: DocumentPicker) {
+            self.parent = documentPicker
+        }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let selectedFileURL = urls.first else {
+                return
+            }
+            
+            // Tentativo di accedere alla risorsa; se fallisce, procedi comunque al tentativo di lettura
+            let canAccess = selectedFileURL.startAccessingSecurityScopedResource()
+            
+            defer {
+                if canAccess {
+                    selectedFileURL.stopAccessingSecurityScopedResource()
+                }
+            }
+            
+            do {
+                let fileContent = try readWithMultipleEncodings(from: selectedFileURL)
+                DispatchQueue.main.async {
+                    self.parent.fileContent = fileContent
+                }
+            } catch {
+                print("Unable to read file content: \(error)")
+            }
+        }        
+
+        public static func readWithMultipleEncodings(from fileURL: URL) throws -> String {
             let encodings: [String.Encoding] = [
                 .ascii,
                 .nextstep,
@@ -512,53 +559,6 @@ struct ContentView: View {
             }
             
             return fileContent
-        }            
-}
-
-struct DocumentPicker: UIViewControllerRepresentable {
-    @Binding var fileContent: String
-
-    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText], asCopy: true)
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-
-    class Coordinator: NSObject, UIDocumentPickerDelegate {
-        var parent: DocumentPicker
-
-        init(_ documentPicker: DocumentPicker) {
-            self.parent = documentPicker
-        }
-
-        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let selectedFileURL = urls.first else {
-                return
-            }
-            
-            // Tentativo di accedere alla risorsa; se fallisce, procedi comunque al tentativo di lettura
-            let canAccess = selectedFileURL.startAccessingSecurityScopedResource()
-            
-            defer {
-                if canAccess {
-                    selectedFileURL.stopAccessingSecurityScopedResource()
-                }
-            }
-            
-            do {
-                let fileContent = try self.parent.readWithMultipleEncodings(from: selectedFileURL)
-                DispatchQueue.main.async {
-                    self.parent.fileContent = fileContent
-                }
-            } catch {
-                print("Unable to read file content: \(error)")
-            }
-        }        
+        }   
     }    
 }
