@@ -506,7 +506,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
             }
             
             do {
-                let fileContent = try FilerHelper.readWithMultipleEncodings(from: selectedFileURL)
+                let fileContent = try FileHelper.readWithMultipleEncodings(from: selectedFileURL)
                 DispatchQueue.main.async {
                     self.parent.fileContent = fileContent
                 }
