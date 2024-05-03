@@ -187,23 +187,21 @@ struct ContentView: View {
                     }
                 TabView(selection: $selectedTabIndex) {
                     ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
-                            ScrollView {
-                                LazyVStack {
-                                    ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
-                                        HStack {
-                                            if UserDefaults.standard.bool(forKey: "lineNumber") {
-                                                Text("\(row.lineNumber).").font(.system(size: textSize()))
-                                            }
-                                            Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
-                                                .background(row.text == messageMaxLine ? Color.red : Color.clear)
-                                                .font(.system(size: textSize()))
-                                                .onTapGesture {
-                                                    if showingEditor {
-                                                        showingEditor = false
-                                                    } else {
-                                                        self.selectedText = row.text
-                                                        self.showingEditor = true
-                                                    }
+                            List {
+                                ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
+                                    HStack {
+                                        if(UserDefaults.standard.bool(forKey: "lineNumber")) {
+                                            Text("\(row.lineNumber).").font(.system(size: textSize()))
+                                        }
+                                        Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
+                                            .background(row.text == messageMaxLine ? Color.red : Color.clear)
+                                            .font(.system(size: textSize()))
+                                            .onTapGesture {
+                                                if(showingEditor) {
+                                                    showingEditor = false
+                                                } else {
+                                                    self.selectedText = row.text
+                                                    self.showingEditor = true
                                                 }
                                         }
                                     }
