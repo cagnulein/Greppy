@@ -4,13 +4,13 @@ import UniformTypeIdentifiers
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView(fileContent: "To start using the app, first locate the icon positioned at the bottom left corner of your\nscreen. This icon is designed for opening files and is your gateway to accessing the documents stored\non your device. Once you tap on this icon, you will be presented with a list of\nfiles. From this list, select the file you wish to explore. Upon selection, the file will\nopen within the app, displaying its contents in a readable format. Now, to search for specific\ncontent within the opened file, direct your attention to the text box located at the top\nof the screen. This text box is your search tool. Enter the keywords or phrases you're looking\nfor, and the app will highlight and navigate you through the occurrences of the searched terms\nwithin the document. This feature allows for an efficient and effective way to find the information\nyou need without manually scouring the entire document.\n\nThe combination of these functionalities—opening files and searching within them—makes this app an invaluable tool\nfor anyone who needs to work with text documents efficiently. Whether you are a student, a professional,\nor just someone who handles a lot of documents, this app simplifies the process of finding the exact\ninformation you need, when you need it.\n")
+        ContentView(fileContent: ["":"To start using the app, first locate the icon positioned at the bottom left corner of your\nscreen. This icon is designed for opening files and is your gateway to accessing the documents stored\non your device. Once you tap on this icon, you will be presented with a list of\nfiles. From this list, select the file you wish to explore. Upon selection, the file will\nopen within the app, displaying its contents in a readable format. Now, to search for specific\ncontent within the opened file, direct your attention to the text box located at the top\nof the screen. This text box is your search tool. Enter the keywords or phrases you're looking\nfor, and the app will highlight and navigate you through the occurrences of the searched terms\nwithin the document. This feature allows for an efficient and effective way to find the information\nyou need without manually scouring the entire document.\n\nThe combination of these functionalities—opening files and searching within them—makes this app an invaluable tool\nfor anyone who needs to work with text documents efficiently. Whether you are a student, a professional,\nor just someone who handles a lot of documents, this app simplifies the process of finding the exact\ninformation you need, when you need it.\n"])
 
     }
 }
 
 struct ContentView: View {
-    @State public var fileContent: String = "To start using the app, first locate the icon positioned at the bottom left corner of your\nscreen. This icon is designed for opening files and is your gateway to accessing the documents stored\non your device. Once you tap on this icon, you will be presented with a list of\nfiles. From this list, select the file you wish to explore. Upon selection, the file will\nopen within the app, displaying its contents in a readable format. Now, to search for specific\ncontent within the opened file, direct your attention to the text box located at the top\nof the screen. This text box is your search tool. Enter the keywords or phrases you're looking\nfor, and the app will highlight and navigate you through the occurrences of the searched terms\nwithin the document. This feature allows for an efficient and effective way to find the information\nyou need without manually scouring the entire document.\n\nThe combination of these functionalities—opening files and searching within them—makes this app an invaluable tool\nfor anyone who needs to work with text documents efficiently. Whether you are a student, a professional,\nor just someone who handles a lot of documents, this app simplifies the process of finding the exact\ninformation you need, when you need it.\n"
+    @State public var fileContent: [String: String] = ["": "To start using the app, first locate the icon positioned at the bottom left corner of your\nscreen. This icon is designed for opening files and is your gateway to accessing the documents stored\non your device. Once you tap on this icon, you will be presented with a list of\nfiles. From this list, select the file you wish to explore. Upon selection, the file will\nopen within the app, displaying its contents in a readable format. Now, to search for specific\ncontent within the opened file, direct your attention to the text box located at the top\nof the screen. This text box is your search tool. Enter the keywords or phrases you're looking\nfor, and the app will highlight and navigate you through the occurrences of the searched terms\nwithin the document. This feature allows for an efficient and effective way to find the information\nyou need without manually scouring the entire document.\n\nThe combination of these functionalities—opening files and searching within them—makes this app an invaluable tool\nfor anyone who needs to work with text documents efficiently. Whether you are a student, a professional,\nor just someone who handles a lot of documents, this app simplifies the process of finding the exact\ninformation you need, when you need it.\n"]
     @State private var searchText: String = ""
     @State private var searchResults: String = ""
     @State private var showingFilePicker = false
@@ -29,17 +29,20 @@ struct ContentView: View {
     @State private var isEditing: Bool = false
     @State private var showSaveDocumentPicker = false
     
-    func textRows(for submittedText: String) -> [(lineNumber: Int, text: String)] {
+    func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
+        let folder = UserDefaults.standard.bool(forKey: "folder")
         var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
-            ? fileContent.components(separatedBy: "\n").enumerated().map { (lineNumber: $0.offset + 1, text: $0.element) }
+        ? (!folder ? fileContent.first?.value.components(separatedBy: "\n").enumerated().map { (lineNumber: $0.offset + 1, text: $0.element, file:fileContent.first?.key ?? "", id: UUID()) } : filteredContent(for: "") )
             : filteredContent(for: submittedText)
         
-        if(allRows.count > maxLine()) {
-            allRows = Array(allRows.prefix(maxLine()))
-            allRows.append((lineNumber: -1, text: messageMaxLine))
+        if(allRows != nil) {
+            if(allRows!.count > maxLine()) {
+                allRows = Array(allRows!.prefix(maxLine()))
+                allRows!.append((lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID()))
+            }
         }
         
-        return allRows
+        return allRows ?? [(lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID())]
     }
 
     func fileGrepped(for submittedText: String) -> String {
@@ -77,10 +80,7 @@ struct ContentView: View {
         }
 
         var foundMatch = false // Flag per tenere traccia se abbiamo trovato almeno un match
-        
-        // Determina le opzioni di ricerca in base alla sensibilità alle maiuscole e minuscole
-        let options: String.CompareOptions = isCaseSensitive ? [] : .caseInsensitive
-        
+                
         if UserDefaults.standard.bool(forKey: "regEx") {
             // Utilizza NSRegularExpression per trovare tutte le corrispondenze con l'espressione regolare
             do {
@@ -88,7 +88,7 @@ struct ContentView: View {
                 let range = NSRange(location: 0, length: fullText.utf16.count)
                 let matches = regex.matches(in: fullText, options: [], range: range)
                 
-                for match in matches {
+                for _ in matches {
                     for l in regExMatches(for: highlight, in: fullText) {
                         let options: String.CompareOptions = []
                         var currentIndex = fullText.startIndex
@@ -187,35 +187,65 @@ struct ContentView: View {
                     }
                 TabView(selection: $selectedTabIndex) {
                     ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
-                            List {
-                                ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
-                                    HStack {
-                                        if(UserDefaults.standard.bool(forKey: "lineNumber")) {
-                                            Text("\(row.lineNumber).").font(.system(size: textSize()))
+                             List {
+                                 
+                                 ForEach(textRows(for: searchTerm), id: \.id) { row in
+                                    VStack {
+                                        HStack {
+                                            if(UserDefaults.standard.bool(forKey: "lineNumber")) {
+                                                Text("\(row.lineNumber).").font(.system(size: textSize()))
+                                            }
+                                            Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
+                                                .background(row.text == messageMaxLine ? Color.red : Color.clear)
+                                                .font(.system(size: textSize()))
+                                                .onTapGesture {
+                                                    if(showingEditor) {
+                                                        showingEditor = false
+                                                    } else {
+                                                        self.selectedText = row.text
+                                                        self.showingEditor = true
+                                                    }
+                                                }.frame(maxWidth: .infinity, alignment: .leading)
                                         }
-                                        Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
-                                            .background(row.text == messageMaxLine ? Color.red : Color.clear)
-                                            .font(.system(size: textSize()))
-                                            .onTapGesture {
-                                                if(showingEditor) {
-                                                    showingEditor = false
-                                                } else {
-                                                    self.selectedText = row.text
-                                                    self.showingEditor = true
-                                                }
+                                        if(UserDefaults.standard.bool(forKey: "folder") && !row.file.isEmpty) {
+                                            Text("from: \(row.file)").font(.system(size: textSize() - 2)).italic()
+                                                .foregroundColor(.gray).frame(maxWidth: .infinity, alignment: .trailing)
                                         }
+
                                     }
                                 }
                             }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
                                 .onOpenURL(perform: { url in
-                                    fileContent = "Loading..."
+                                    fileContent = [url.lastPathComponent: "Loading..."]
                                     // Esegui la lettura del file in background
                                     DispatchQueue.global(qos: .userInitiated).async {
-                                        let loadedContent = loadFileContent(from: url)
-                                        
-                                        // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
-                                        DispatchQueue.main.async {
-                                            fileContent = loadedContent
+                                        let folder = UserDefaults.standard.bool(forKey: "folder")
+                                        if(folder == false) {
+                                            let loadedContent = loadFileContent(from: url)
+                                            
+                                            // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
+                                            DispatchQueue.main.async {
+                                                fileContent = [url.lastPathComponent: loadedContent]
+                                            }
+                                        } else {
+                                            let fileManager = FileManager.default
+                                            let directory = url.deletingLastPathComponent()
+                                            
+                                            do {
+                                                let fileURLs = try fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+                                                for fileURL in fileURLs {
+                                                    // Open the file
+                                                    print("Opening file: \(fileURL)")
+                                                    let loadedContent = loadFileContent(from: fileURL)
+                                                    
+                                                    // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
+                                                    DispatchQueue.main.async {
+                                                        fileContent = [fileURL.lastPathComponent: loadedContent]
+                                                    }
+                                                }
+                                            } catch {
+                                                print("Error while enumerating files \(directory.path): \(error.localizedDescription)")
+                                            }
                                         }
                                     }
                                 }).tabItem {
@@ -240,7 +270,8 @@ struct ContentView: View {
                                             Label("Close All", systemImage: "xmark")
                                         }
                                         Button {
-                                            fileContent = fileGrepped(for: searchTerm)
+                                            fileContent.removeAll()
+                                            fileContent = ["": fileGrepped(for: searchTerm)]
                                             if !searchTabs.isEmpty && searchTabs.count > 1 {
                                                 // Rimuovi gli elementi dall'indice 1 fino all'ultimo
                                                 searchTabs.removeSubrange(1...)
@@ -264,10 +295,11 @@ struct ContentView: View {
                                         }
                                     } else {
                                         Button {
+                                            fileContent.removeAll()
                                             if let clipboardString = UIPasteboard.general.string {
-                                                fileContent = clipboardString
+                                                fileContent = ["": clipboardString]
                                             } else {
-                                                fileContent = "Clipboard is empty or does not contain text."
+                                                fileContent = ["": "Clipboard is empty or does not contain text."]
                                             }
                                             if !searchTabs.isEmpty && searchTabs.count > 1 {
                                                 // Rimuovi gli elementi dall'indice 1 fino all'ultimo
@@ -386,70 +418,79 @@ struct ContentView: View {
         print("selectedTabIndex \(selectedTabIndex)")
     }
 
-    private func filteredContent(for submittedText: String) -> [(lineNumber: Int, text: String)] {
-        let lines = fileContent.components(separatedBy: "\n")
-        var filteredLines = [(lineNumber: Int, text: String)]()
-
+    private func filteredContent(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
+        let isReverse = UserDefaults.standard.bool(forKey: "reverse")
+        var filteredLines = [(lineNumber: Int, text: String, file: String, id: UUID)]()
         let linesBefore = UserDefaults.standard.integer(forKey: "linesBefore")
         let linesAfter = UserDefaults.standard.integer(forKey: "linesAfter")
         let isCaseSensitive = UserDefaults.standard.bool(forKey: "caseSensitiveSearch")
         let isInverted = UserDefaults.standard.bool(forKey: "inverted")
         let isRegEx = UserDefaults.standard.bool(forKey: "regEx")
-        let isReverse = UserDefaults.standard.bool(forKey: "reverse")
-
-        for (index, line) in lines.enumerated() {
-            let line = lines[index]
-            var doesMatch: Bool
-            if isRegEx {
-                do {
-                    let regex = try NSRegularExpression(pattern: submittedText, options: [])
-                    let range = NSRange(location: 0, length: line.utf16.count)
-                    let matches = regex.matches(in: line, options: [], range: range)
-                    doesMatch = matches.first != nil
-                } catch {
-                    doesMatch = false
+        
+        fileContent.forEach { key, value in
+            print("filteredContent \(key)")
+            let lines = value.components(separatedBy: "\n")
+                        
+            for (index, _) in lines.enumerated() {
+                let line = lines[index]
+                var doesMatch: Bool
+                if isRegEx {
+                    do {
+                        let regex = try NSRegularExpression(pattern: submittedText, options: [])
+                        let range = NSRange(location: 0, length: line.utf16.count)
+                        let matches = regex.matches(in: line, options: [], range: range)
+                        doesMatch = matches.first != nil
+                    } catch {
+                        doesMatch = false
+                    }
+                } else if isCaseSensitive {
+                    doesMatch = line.contains(submittedText)
+                } else {
+                    doesMatch = line.lowercased().contains(submittedText.lowercased())
                 }
-            } else if isCaseSensitive {
-                doesMatch = line.contains(submittedText)
-            } else {
-                doesMatch = line.lowercased().contains(submittedText.lowercased())
-            }
-            if isInverted {
-                doesMatch = !doesMatch
-            }
-
-            if bookmarkedLines.firstIndex(of: line) != nil {
-                doesMatch = true
-            }
-
-            if doesMatch {
-                let startRange = max(0, index - linesBefore)
-                let endRange = min(lines.count, index + linesAfter + 1)
-
-                for contextIndex in startRange..<endRange {
-                    let contextLine = lines[contextIndex]
-                    if !filteredLines.contains(where: { $0.lineNumber == contextIndex + 1 }) {
-                        filteredLines.append((lineNumber: contextIndex + 1, text: contextLine))
+                if isInverted {
+                    doesMatch = !doesMatch
+                }
+                
+                if bookmarkedLines.firstIndex(of: line) != nil {
+                    doesMatch = true
+                }
+                
+                if submittedText.isEmpty {
+                    doesMatch = true
+                }
+                
+                if doesMatch {
+                    print("\(line) \(key)")
+                    let startRange = max(0, index - linesBefore)
+                    let endRange = min(lines.count, index + linesAfter + 1)
+                    
+                    for contextIndex in startRange..<endRange {
+                        let contextLine = lines[contextIndex]
+                        if !filteredLines.contains(where: { $0.lineNumber == contextIndex + 1 && $0.file == key }) {
+                            filteredLines.append((lineNumber: contextIndex + 1, text: contextLine, file: key, id: UUID()))
+                        }
+                    }
+                    
+                    if filteredLines.count >= maxLine() {
+                        break
                     }
                 }
-
-                if filteredLines.count >= maxLine() {
-                    break
-                }
             }
         }
-
+        
         if(filteredLines.count >= maxLine()) {
-            filteredLines.append((lineNumber: -1, text: messageMaxLine))
+            filteredLines.append((lineNumber: -1, text: messageMaxLine, file: "", id: UUID()))
         }
-
-
+        
         var result = Array(filteredLines.prefix(maxLine()))
-
+        
+        print(result)
+        
         if isReverse {
             result.reverse()
         }
-
+        
         return result
     }
 
@@ -470,7 +511,7 @@ struct ContentView: View {
 }
 
 struct DocumentPicker: UIViewControllerRepresentable {
-    @Binding var fileContent: String
+    @Binding var fileContent: [String: String]
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText], asCopy: true)
@@ -506,9 +547,32 @@ struct DocumentPicker: UIViewControllerRepresentable {
             }
             
             do {
-                let fileContent = try FileHelper.readWithMultipleEncodings(from: selectedFileURL)
+                let folder = UserDefaults.standard.bool(forKey: "folder")
+                var fC : [String: String] = [ : ]
+                if(folder == false) {
+                    let fileContent = try FileHelper.readWithMultipleEncodings(from: selectedFileURL)
+                    fC[selectedFileURL.lastPathComponent] = fileContent
+                } else {
+                    let fileManager = FileManager.default
+                    let directory = selectedFileURL.deletingLastPathComponent()
+                    
+                    do {
+                        let fileURLs = try fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+                        for fileURL in fileURLs {
+                            // Open the file
+                            print("Opening file: \(fileURL)")
+                            do {
+                                let fileContent = try FileHelper.readWithMultipleEncodings(from: fileURL)
+                                fC[fileURL.lastPathComponent] = fileContent
+                            }
+                        }
+                    } catch {
+                        print("Error while enumerating files \(directory.path): \(error.localizedDescription)")
+                    }
+                }
+                print(fC)
                 DispatchQueue.main.async {
-                    self.parent.fileContent = fileContent
+                    self.parent.fileContent = fC
                 }
             } catch {
                 print("Unable to read file content: \(error)")
@@ -556,9 +620,9 @@ class FileHelper {
             }
         }
         
-        guard !fileContent.isEmpty else {
+        /*guard !fileContent.isEmpty else {
             throw NSError(domain: "EncodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unable to read file with any encoding."])
-        }
+        }*/
         
         return fileContent
     }   
