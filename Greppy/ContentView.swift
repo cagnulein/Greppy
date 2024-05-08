@@ -208,7 +208,7 @@ struct ContentView: View {
                                                 }.frame(maxWidth: .infinity, alignment: .leading)
                                         }
                                         if(UserDefaults.standard.bool(forKey: "folder") && !row.file.isEmpty) {
-                                            Text("from: \(row.file)").font(.system(size: textSize() - 10)).italic()
+                                            Text("from: \(row.file)").font(.system(size: textSize() - 2)).italic()
                                                 .foregroundColor(.gray).frame(maxWidth: .infinity, alignment: .trailing)
                                         }
 
