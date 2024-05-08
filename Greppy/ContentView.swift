@@ -29,19 +29,20 @@ struct ContentView: View {
     @State private var isEditing: Bool = false
     @State private var showSaveDocumentPicker = false
     
-    func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String)] {
+    func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
+        let folder = UserDefaults.standard.bool(forKey: "folder")
         var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
-        ? fileContent.first?.value.components(separatedBy: "\n").enumerated().map { (lineNumber: $0.offset + 1, text: $0.element, file:fileContent.first?.key ?? "") }
+        ? (!folder ? fileContent.first?.value.components(separatedBy: "\n").enumerated().map { (lineNumber: $0.offset + 1, text: $0.element, file:fileContent.first?.key ?? "", id: UUID()) } : filteredContent(for: "") )
             : filteredContent(for: submittedText)
         
         if(allRows != nil) {
             if(allRows!.count > maxLine()) {
                 allRows = Array(allRows!.prefix(maxLine()))
-                allRows!.append((lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? ""))
+                allRows!.append((lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID()))
             }
         }
         
-        return allRows ?? [(lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "")]
+        return allRows ?? [(lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID())]
     }
 
     func fileGrepped(for submittedText: String) -> String {
@@ -186,8 +187,9 @@ struct ContentView: View {
                     }
                 TabView(selection: $selectedTabIndex) {
                     ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
-                            List {
-                                ForEach(textRows(for: searchTerm), id: \.lineNumber) { row in
+                             List {
+                                 
+                                 ForEach(textRows(for: searchTerm), id: \.id) { row in
                                     VStack {
                                         HStack {
                                             if(UserDefaults.standard.bool(forKey: "lineNumber")) {
@@ -416,9 +418,9 @@ struct ContentView: View {
         print("selectedTabIndex \(selectedTabIndex)")
     }
 
-    private func filteredContent(for submittedText: String) -> [(lineNumber: Int, text: String, file: String)] {
+    private func filteredContent(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
         let isReverse = UserDefaults.standard.bool(forKey: "reverse")
-        var filteredLines = [(lineNumber: Int, text: String, file: String)]()
+        var filteredLines = [(lineNumber: Int, text: String, file: String, id: UUID)]()
         let linesBefore = UserDefaults.standard.integer(forKey: "linesBefore")
         let linesAfter = UserDefaults.standard.integer(forKey: "linesAfter")
         let isCaseSensitive = UserDefaults.standard.bool(forKey: "caseSensitiveSearch")
@@ -454,6 +456,10 @@ struct ContentView: View {
                     doesMatch = true
                 }
                 
+                if submittedText.isEmpty {
+                    doesMatch = true
+                }
+                
                 if doesMatch {
                     print("\(line) \(key)")
                     let startRange = max(0, index - linesBefore)
@@ -462,7 +468,7 @@ struct ContentView: View {
                     for contextIndex in startRange..<endRange {
                         let contextLine = lines[contextIndex]
                         if !filteredLines.contains(where: { $0.lineNumber == contextIndex + 1 && $0.file == key }) {
-                            filteredLines.append((lineNumber: contextIndex + 1, text: contextLine, file: key))
+                            filteredLines.append((lineNumber: contextIndex + 1, text: contextLine, file: key, id: UUID()))
                         }
                     }
                     
@@ -474,7 +480,7 @@ struct ContentView: View {
         }
         
         if(filteredLines.count >= maxLine()) {
-            filteredLines.append((lineNumber: -1, text: messageMaxLine, file: ""))
+            filteredLines.append((lineNumber: -1, text: messageMaxLine, file: "", id: UUID()))
         }
         
         var result = Array(filteredLines.prefix(maxLine()))
