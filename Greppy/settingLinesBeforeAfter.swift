@@ -18,6 +18,7 @@ struct settingLinesBeforeAfterView: View {
     @AppStorage("fontSize") private var fontSize = 18
     @AppStorage("regEx") private var regEx = false
     @AppStorage("reverse") private var reverse = false
+    @AppStorage("folder") private var folder = false
     
     private var appVersion: String {
         (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "N/A"
@@ -44,6 +45,11 @@ struct settingLinesBeforeAfterView: View {
                         Text("Max Output Lines: \(maxLines)")
                     }
                 }
+                
+                Section(header: Text("Folders")) {
+                    Toggle("Search in the folder", isOn: $folder)
+                }
+                
                 Section(header: Text("Context Lines")) {
                     Stepper(value: $linesBefore, in: 0...10) {
                         Text("Before: \(linesBefore)")
