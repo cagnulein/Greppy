@@ -31,6 +31,11 @@ struct ContentView: View {
     @State private var _textRows : [(lineNumber: Int, text: String, file: String, id: UUID)] = []
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
+
+        if _changed == false {
+            return _textRows
+        }
+
         DispatchQueue.global(qos: .background).async {
             let folder = UserDefaults.standard.bool(forKey: "folder")
             var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
@@ -46,6 +51,7 @@ struct ContentView: View {
 
             DispatchQueue.main.async {
                 _textRows = allRows ?? [(lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID())]
+                _changed = false
             }
         }
 
@@ -327,6 +333,7 @@ struct ContentView: View {
                                     submittedText = ""
                                     bookmarkedLines = []
                                     searchTabs.removeAll()
+                                    _changed = true
                                     addNewSearchTab(searchText: "")
                                }) {
                                    Image(systemName: "folder") // Esempio di icona di apertura file
@@ -348,6 +355,7 @@ struct ContentView: View {
                                }.onChange(of: showingSettingLinesBeforeAfter) { newValue in
                                    if sheetWasPresented && !newValue {
                                        sheetWasPresented = false
+                                       _changed = true
                                        submitSearch()
                                    }
                                }
@@ -376,6 +384,7 @@ struct ContentView: View {
                         userInput = ""
                         searchText = ""
                         submittedText = ""
+                        _changed = true
                     }) {
                         Image(systemName: "xmark.circle.fill") // Icona di chiusura
                             .foregroundColor(.gray)
@@ -412,6 +421,7 @@ struct ContentView: View {
         }
         // Questa azione viene eseguita quando l'utente preme "Done"
         submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
+        _changed = true
         // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
         addNewSearchTab(searchText: searchText)
     }
@@ -505,6 +515,7 @@ struct ContentView: View {
 
     func loadFileContent(from url: URL) -> String {
         bookmarkedLines = []
+        _changed = true
         searchTabs.removeAll()
         addNewSearchTab(searchText: "")
         // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
@@ -580,6 +591,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 print(fC)
                 DispatchQueue.main.async {
                     self.parent.fileContent = fC
+                    _changed = true
                 }
             } catch {
                 print("Unable to read file content: \(error)")
