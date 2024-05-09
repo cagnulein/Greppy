@@ -28,21 +28,28 @@ struct ContentView: View {
     @State private var bookmarkedLines: [String] = []
     @State private var isEditing: Bool = false
     @State private var showSaveDocumentPicker = false
+
+    let backgroundQueue = DispatchQueue(label: "com.cagnulein.Greppy.queue", qos: .background)
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
-        let folder = UserDefaults.standard.bool(forKey: "folder")
-        var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
-        ? (!folder ? fileContent.first?.value.components(separatedBy: "\n").enumerated().map { (lineNumber: $0.offset + 1, text: $0.element, file:fileContent.first?.key ?? "", id: UUID()) } : filteredContent(for: "") )
-            : filteredContent(for: submittedText)
-        
-        if(allRows != nil) {
-            if(allRows!.count > maxLine()) {
-                allRows = Array(allRows!.prefix(maxLine()))
-                allRows!.append((lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID()))
+        backgroundQueue.async {
+            let folder = UserDefaults.standard.bool(forKey: "folder")
+            var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
+            ? (!folder ? fileContent.first?.value.components(separatedBy: "\n").enumerated().map { (lineNumber: $0.offset + 1, text: $0.element, file:fileContent.first?.key ?? "", id: UUID()) } : filteredContent(for: "") )
+                : filteredContent(for: submittedText)
+            
+            if(allRows != nil) {
+                if(allRows!.count > maxLine()) {
+                    allRows = Array(allRows!.prefix(maxLine()))
+                    allRows!.append((lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID()))
+                }
+            }
+            
+            let result = allRows ?? [(lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID())]
+            DispatchQueue.main.async {
+                completion(result)
             }
         }
-        
-        return allRows ?? [(lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID())]
     }
 
     func fileGrepped(for submittedText: String) -> String {
