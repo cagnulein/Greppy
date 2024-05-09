@@ -396,8 +396,7 @@ struct ContentView: View {
 
                 // Mostra il picker quando showingFilePicker è true
                 .sheet(isPresented: $showingFilePicker) {
-                    DocumentPicker(fileContent: $fileContent)
-                    _changed = true
+                    DocumentPicker(fileContent: $fileContent, _changed: $changed)
                 }
                 .sheet(isPresented: $showSaveDocumentPicker) {
                    SaveDocumentPicker(activityItems: [URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ExportedFile.txt")], applicationActivities: nil)
@@ -532,6 +531,7 @@ struct ContentView: View {
 
 struct DocumentPicker: UIViewControllerRepresentable {
     @Binding var fileContent: [String: String]
+    @Binding var _changed: Bool = true
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText], asCopy: true)
@@ -592,7 +592,8 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 }
                 print(fC)
                 DispatchQueue.main.async {
-                    self.parent.fileContent = fC                    
+                    self.parent.fileContent = fC        
+                    self.parent._changed = true            
                 }
             } catch {
                 print("Unable to read file content: \(error)")
