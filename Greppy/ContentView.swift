@@ -28,7 +28,7 @@ struct ContentView: View {
     @State private var bookmarkedLines: [String] = []
     @State private var isEditing: Bool = false
     @State private var showSaveDocumentPicker = false
-    @State private var _textRows = [(lineNumber: Int, text: String, file: String, id: UUID)]
+    @State private var _textRows : [(lineNumber: Int, text: String, file: String, id: UUID)] = []
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
         DispatchQueue.global(qos: .background).async {
