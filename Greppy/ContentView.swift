@@ -31,7 +31,7 @@ struct ContentView: View {
 
     let backgroundQueue = DispatchQueue(label: "com.cagnulein.Greppy.queue", qos: .background)
     
-    func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
+    func textRows(for submittedText: String, completion: @escaping ([(lineNumber: Int, text: String, file: String, id: UUID)]) -> Void) {
         backgroundQueue.async {
             let folder = UserDefaults.standard.bool(forKey: "folder")
             var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
