@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var isEditing: Bool = false
     @State private var showSaveDocumentPicker = false
     @State private var _textRows : [(lineNumber: Int, text: String, file: String, id: UUID)] = []
+    @State private var _changed: Bool = true
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
 
@@ -396,6 +397,7 @@ struct ContentView: View {
                 // Mostra il picker quando showingFilePicker è true
                 .sheet(isPresented: $showingFilePicker) {
                     DocumentPicker(fileContent: $fileContent)
+                    _changed = true
                 }
                 .sheet(isPresented: $showSaveDocumentPicker) {
                    SaveDocumentPicker(activityItems: [URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ExportedFile.txt")], applicationActivities: nil)
@@ -590,8 +592,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 }
                 print(fC)
                 DispatchQueue.main.async {
-                    self.parent.fileContent = fC
-                    _changed = true
+                    self.parent.fileContent = fC                    
                 }
             } catch {
                 print("Unable to read file content: \(error)")
