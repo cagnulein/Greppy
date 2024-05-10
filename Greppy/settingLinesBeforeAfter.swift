@@ -33,10 +33,12 @@ struct settingLinesBeforeAfterView: View {
         NavigationView {
             Form {
                 Section(header: Text("Search")) {
-                    Toggle("Case Sensitive", isOn: $caseSensitiveSearch)
+                    Toggle("Case Sensitive", isOn: $caseSensitiveSearch).disabled(regEx)
                     Toggle("Invert Match", isOn: $inverted)
                     Toggle("Start from the end of the file", isOn: $reverse)
-                    Toggle("Regular Expressions", isOn: $regEx)
+                    Toggle("Regular Expressions", isOn: $regEx).onChange(of: regEx) { newValue in
+                        caseSensitiveSearch = newValue
+                    }
                     Toggle("Line Numbers", isOn: $lineNumber)
                     Stepper(value: $fontSize, in: 6...32) {
                         Text("Font Size: \(fontSize)")
