@@ -51,7 +51,8 @@ struct ContentView: View {
             }                                        
 
             DispatchQueue.main.async {
-                _textRows = allRows ?? [(submittedText: submittedText, lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID())]
+                _textRows.removeAll { $0.submittedText == submittedText }
+                _textRows.append(contentsOf: allRows ?? [(submittedText: submittedText, lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID())])
                 _changed[submittedText] = false
             }
         }
