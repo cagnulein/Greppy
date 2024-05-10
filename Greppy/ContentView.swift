@@ -201,33 +201,39 @@ struct ContentView: View {
                     }
                 TabView(selection: $selectedTabIndex) {
                     ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
-                             List {
-                                 
-                                 ForEach(textRows(for: searchTerm), id: \.id) { row in
-                                    VStack {
-                                        HStack {
-                                            if(UserDefaults.standard.bool(forKey: "lineNumber")) {
-                                                Text("\(row.lineNumber).").font(.system(size: textSize()))
+                            List {
+                                ForEach(textRows(for: searchTerm), id: \.id) { row in
+                                    if(_changed[searchTerm] == false) {
+                                        VStack {
+                                            HStack {
+                                                if(UserDefaults.standard.bool(forKey: "lineNumber")) {
+                                                    Text("\(row.lineNumber).").font(.system(size: textSize()))
+                                                }
+                                                Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
+                                                    .background(row.text == messageMaxLine ? Color.red : Color.clear)
+                                                    .font(.system(size: textSize()))
+                                                    .onTapGesture {
+                                                        if(showingEditor) {
+                                                            showingEditor = false
+                                                        } else {
+                                                            self.selectedText = row.text
+                                                            self.showingEditor = true
+                                                        }
+                                                    }.frame(maxWidth: .infinity, alignment: .leading)
                                             }
-                                            Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
-                                                .background(row.text == messageMaxLine ? Color.red : Color.clear)
-                                                .font(.system(size: textSize()))
-                                                .onTapGesture {
-                                                    if(showingEditor) {
-                                                        showingEditor = false
-                                                    } else {
-                                                        self.selectedText = row.text
-                                                        self.showingEditor = true
-                                                    }
-                                                }.frame(maxWidth: .infinity, alignment: .leading)
+                                            if(UserDefaults.standard.bool(forKey: "folder") && !row.file.isEmpty) {
+                                                Text("from: \(row.file)").font(.system(size: textSize() - 2)).italic()
+                                                    .foregroundColor(.gray).frame(maxWidth: .infinity, alignment: .trailing)
+                                            }
+                                            
                                         }
-                                        if(UserDefaults.standard.bool(forKey: "folder") && !row.file.isEmpty) {
-                                            Text("from: \(row.file)").font(.system(size: textSize() - 2)).italic()
-                                                .foregroundColor(.gray).frame(maxWidth: .infinity, alignment: .trailing)
-                                        }
-
-                                    }
+                                } else {
+                                    ProgressView()
+                                                .progressViewStyle(CircularProgressViewStyle())
+                                                .scaleEffect(2) // Aumenta la dimensione dello spinner se necessario
                                 }
+                            }
+    
                             }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
                                 .onOpenURL(perform: { url in
                                     fileContent = [url.lastPathComponent: "Loading..."]
