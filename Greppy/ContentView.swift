@@ -29,11 +29,11 @@ struct ContentView: View {
     @State private var isEditing: Bool = false
     @State private var showSaveDocumentPicker = false
     @State private var _textRows : [(lineNumber: Int, text: String, file: String, id: UUID)] = []
-    @State private var _changed: Bool = true
+    @State private var _changed: [String: Bool] = [ : ]
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
 
-        if _changed == false {
+        if _changed[submittedText] != nil && _changed[submittedText] == false {
             return _textRows
         }
 
@@ -52,7 +52,7 @@ struct ContentView: View {
 
             DispatchQueue.main.async {
                 _textRows = allRows ?? [(lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID())]
-                _changed = false
+                _changed[submittedText] = false
             }
         }
 
@@ -334,7 +334,7 @@ struct ContentView: View {
                                     submittedText = ""
                                     bookmarkedLines = []
                                     searchTabs.removeAll()
-                                    _changed = true
+                                    _changed.removeAll()
                                     addNewSearchTab(searchText: "")
                                }) {
                                    Image(systemName: "folder") // Esempio di icona di apertura file
@@ -356,7 +356,7 @@ struct ContentView: View {
                                }.onChange(of: showingSettingLinesBeforeAfter) { newValue in
                                    if sheetWasPresented && !newValue {
                                        sheetWasPresented = false
-                                       _changed = true
+                                       _changed.removeAll()
                                        submitSearch()
                                    }
                                }
@@ -385,7 +385,6 @@ struct ContentView: View {
                         userInput = ""
                         searchText = ""
                         submittedText = ""
-                        _changed = true
                     }) {
                         Image(systemName: "xmark.circle.fill") // Icona di chiusura
                             .foregroundColor(.gray)
@@ -421,8 +420,8 @@ struct ContentView: View {
             }
         }
         // Questa azione viene eseguita quando l'utente preme "Done"
+        _changed[searchText] = true
         submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
-        _changed = true
         // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
         addNewSearchTab(searchText: searchText)
     }
@@ -516,7 +515,7 @@ struct ContentView: View {
 
     func loadFileContent(from url: URL) -> String {
         bookmarkedLines = []
-        _changed = true
+        _changed.removeAll()
         searchTabs.removeAll()
         addNewSearchTab(searchText: "")
         // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
@@ -531,7 +530,7 @@ struct ContentView: View {
 
 struct DocumentPicker: UIViewControllerRepresentable {
     @Binding var fileContent: [String: String]
-    @Binding var _changed: Bool
+    @Binding var _changed: [String : Bool]
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText], asCopy: true)
@@ -593,7 +592,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 print(fC)
                 DispatchQueue.main.async {
                     self.parent.fileContent = fC        
-                    self.parent._changed = true            
+                    self.parent._changed.removeAll()
                 }
             } catch {
                 print("Unable to read file content: \(error)")
