@@ -208,7 +208,7 @@ struct ContentView: View {
                                                 }.frame(maxWidth: .infinity, alignment: .leading)
                                         }
                                         if(UserDefaults.standard.bool(forKey: "folder") && !row.file.isEmpty) {
-                                            Text("from: \(row.file)").font(.system(size: textSize() - 2)).italic()
+                                            Text("from: \(row.file):\(row.lineNumber)").font(.system(size: textSize() - 2)).italic()
                                                 .foregroundColor(.gray).frame(maxWidth: .infinity, alignment: .trailing)
                                         }
 
@@ -515,6 +515,10 @@ struct DocumentPicker: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText], asCopy: true)
+        let folder = UserDefaults.standard.bool(forKey: "folder")
+        if(folder) {
+            picker.allowsMultipleSelection = true
+        }
         picker.delegate = context.coordinator
         return picker
     }
@@ -533,52 +537,30 @@ struct DocumentPicker: UIViewControllerRepresentable {
         }
 
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let selectedFileURL = urls.first else {
-                return
-            }
-            
-            // Tentativo di accedere alla risorsa; se fallisce, procedi comunque al tentativo di lettura
-            let canAccess = selectedFileURL.startAccessingSecurityScopedResource()
-            
-            defer {
-                if canAccess {
-                    selectedFileURL.stopAccessingSecurityScopedResource()
-                }
-            }
-            
-            do {
-                let folder = UserDefaults.standard.bool(forKey: "folder")
-                var fC : [String: String] = [ : ]
-                if(folder == false) {
-                    let fileContent = try FileHelper.readWithMultipleEncodings(from: selectedFileURL)
-                    fC[selectedFileURL.lastPathComponent] = fileContent
-                } else {
-                    let fileManager = FileManager.default
-                    let directory = selectedFileURL.deletingLastPathComponent()
-                    
-                    do {
-                        let fileURLs = try fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-                        for fileURL in fileURLs {
-                            // Open the file
-                            print("Opening file: \(fileURL)")
-                            do {
-                                let fileContent = try FileHelper.readWithMultipleEncodings(from: fileURL)
-                                fC[fileURL.lastPathComponent] = fileContent
-                            }
-                        }
-                    } catch {
-                        print("Error while enumerating files \(directory.path): \(error.localizedDescription)")
+            var fC: [String: String] = [:]
+            for url in urls {
+                let canAccess = url.startAccessingSecurityScopedResource()
+                defer {
+                    if canAccess {
+                        url.stopAccessingSecurityScopedResource()
                     }
                 }
+                
+                do {
+                    // Leggi il contenuto del file selezionato
+                    let fileContent = try FileHelper.readWithMultipleEncodings(from: url)
+                    fC[url.lastPathComponent] = fileContent
+                } catch {
+                    print("Unable to read file content: \(error)")
+                }
+                
                 print(fC)
                 DispatchQueue.main.async {
                     self.parent.fileContent = fC
                 }
-            } catch {
-                print("Unable to read file content: \(error)")
             }
-        }        
-    }    
+        }
+    }
 }
 
 class FileHelper {
