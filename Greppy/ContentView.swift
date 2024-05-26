@@ -28,21 +28,19 @@ struct ContentView: View {
     @State private var bookmarkedLines: [String] = []
     @State private var isEditing: Bool = false
     @State private var showSaveDocumentPicker = false
+    @State private var lastSelectionDate: Date?
     
     func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
-        let folder = UserDefaults.standard.bool(forKey: "folder")
         var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
-        ? (!folder ? fileContent.first?.value.components(separatedBy: "\n").enumerated().map { (lineNumber: $0.offset + 1, text: $0.element, file:fileContent.first?.key ?? "", id: UUID()) } : filteredContent(for: "") )
+        ?  filteredContent(for: "")
             : filteredContent(for: submittedText)
         
-        if(allRows != nil) {
-            if(allRows!.count > maxLine()) {
-                allRows = Array(allRows!.prefix(maxLine()))
-                allRows!.append((lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID()))
-            }
+        if(allRows.count > maxLine()) {
+            allRows = Array(allRows.prefix(maxLine()))
+            allRows.append((lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID()))
         }
         
-        return allRows ?? [(lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID())]
+        return allRows
     }
 
     func fileGrepped(for submittedText: String) -> String {
@@ -207,7 +205,7 @@ struct ContentView: View {
                                                     }
                                                 }.frame(maxWidth: .infinity, alignment: .leading)
                                         }
-                                        if(UserDefaults.standard.bool(forKey: "folder") && !row.file.isEmpty) {
+                                        if(fileContent.keys.count > 1 && !row.file.isEmpty) {
                                             Text("from: \(row.file):\(row.lineNumber)").font(.system(size: textSize() - 2)).italic()
                                                 .foregroundColor(.gray).frame(maxWidth: .infinity, alignment: .trailing)
                                         }
@@ -216,37 +214,25 @@ struct ContentView: View {
                                 }
                             }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
                                 .onOpenURL(perform: { url in
-                                    fileContent = [url.lastPathComponent: "Loading..."]
-                                    // Esegui la lettura del file in background
+                                    print("openUrl \(url)")
+                                    let currentTime = Date()
+                                    let selectionInterval: TimeInterval = 5.0 // intervallo di tempo per considerare una selezione come unica (in secondi)
+                                    
+                                    if let lastSelectionDate = lastSelectionDate, currentTime.timeIntervalSince(lastSelectionDate) < selectionInterval {
+
+                                    } else {
+                                        // Nuova selezione
+                                        fileContent.removeAll()
+                                    }
+                                    
+                                    lastSelectionDate = currentTime
+                                    
                                     DispatchQueue.global(qos: .userInitiated).async {
-                                        //let folder = UserDefaults.standard.bool(forKey: "folder")
-                                        /*if(folder == false) {*/
-                                            let loadedContent = loadFileContent(from: url)
-                                            
-                                            // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
-                                            DispatchQueue.main.async {
-                                                fileContent = [url.lastPathComponent: loadedContent]
-                                            }
-                                        /*} else {
-                                            let fileManager = FileManager.default
-                                            let directory = url.deletingLastPathComponent()
-                                            
-                                            do {
-                                                let fileURLs = try fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-                                                for fileURL in fileURLs {
-                                                    // Open the file
-                                                    print("Opening file: \(fileURL)")
-                                                    let loadedContent = loadFileContent(from: fileURL)
-                                                    
-                                                    // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
-                                                    DispatchQueue.main.async {
-                                                        fileContent = [fileURL.lastPathComponent: loadedContent]
-                                                    }
-                                                }
-                                            } catch {
-                                                print("Error while enumerating files \(directory.path): \(error.localizedDescription)")
-                                            }
-                                        }*/
+                                        let loadedContent = loadFileContent(from: url)
+                                        
+                                        DispatchQueue.main.async {
+                                            fileContent[url.lastPathComponent] =  loadedContent
+                                        }
                                     }
                                 }).tabItem {
                                     Label(searchTerm == "" ? "Original" : searchTerm, systemImage: "doc.text.magnifyingglass")
@@ -515,10 +501,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText], asCopy: true)
-        let folder = UserDefaults.standard.bool(forKey: "folder")
-        if(folder) {
-            picker.allowsMultipleSelection = true
-        }
+        picker.allowsMultipleSelection = true
         picker.delegate = context.coordinator
         return picker
     }
