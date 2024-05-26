@@ -219,15 +219,15 @@ struct ContentView: View {
                                     fileContent = [url.lastPathComponent: "Loading..."]
                                     // Esegui la lettura del file in background
                                     DispatchQueue.global(qos: .userInitiated).async {
-                                        let folder = UserDefaults.standard.bool(forKey: "folder")
-                                        if(folder == false) {
+                                        //let folder = UserDefaults.standard.bool(forKey: "folder")
+                                        /*if(folder == false) {*/
                                             let loadedContent = loadFileContent(from: url)
                                             
                                             // Una volta caricato il contenuto, aggiorna l'UI sulla main queue
                                             DispatchQueue.main.async {
                                                 fileContent = [url.lastPathComponent: loadedContent]
                                             }
-                                        } else {
+                                        /*} else {
                                             let fileManager = FileManager.default
                                             let directory = url.deletingLastPathComponent()
                                             
@@ -246,7 +246,7 @@ struct ContentView: View {
                                             } catch {
                                                 print("Error while enumerating files \(directory.path): \(error.localizedDescription)")
                                             }
-                                        }
+                                        }*/
                                     }
                                 }).tabItem {
                                     Label(searchTerm == "" ? "Original" : searchTerm, systemImage: "doc.text.magnifyingglass")
