@@ -401,77 +401,61 @@ struct ContentView: View {
         }
         searchTabs.append(searchText) // Aggiungi il nuovo termine di ricerca alla lista dei tab
         selectedTabIndex = searchTabs.count - 1
-        print("selectedTabIndex \(selectedTabIndex)")
+        //print("selectedTabIndex \(selectedTabIndex)")
     }
 
     private func filteredContent(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
         let isReverse = UserDefaults.standard.bool(forKey: "reverse")
-        var filteredLines = [(lineNumber: Int, text: String, file: String, id: UUID)]()
         let linesBefore = UserDefaults.standard.integer(forKey: "linesBefore")
         let linesAfter = UserDefaults.standard.integer(forKey: "linesAfter")
         let isCaseSensitive = UserDefaults.standard.bool(forKey: "caseSensitiveSearch")
         let isInverted = UserDefaults.standard.bool(forKey: "inverted")
         let isRegEx = UserDefaults.standard.bool(forKey: "regEx")
         
-        fileContent.forEach { key, value in
-            print("filteredContent \(key)")
-            let lines = value.components(separatedBy: "\n")
-                        
-            for (index, _) in lines.enumerated() {
-                let line = lines[index]
-                var doesMatch: Bool
-                if isRegEx {
-                    do {
-                        let regex = try NSRegularExpression(pattern: submittedText, options: [])
-                        let range = NSRange(location: 0, length: line.utf16.count)
-                        let matches = regex.matches(in: line, options: [], range: range)
-                        doesMatch = matches.first != nil
-                    } catch {
-                        doesMatch = false
-                    }
-                } else if isCaseSensitive {
-                    doesMatch = line.contains(submittedText)
-                } else {
-                    doesMatch = line.lowercased().contains(submittedText.lowercased())
-                }
-                if isInverted {
-                    doesMatch = !doesMatch
-                }
-                
-                if bookmarkedLines.firstIndex(of: line) != nil {
-                    doesMatch = true
-                }
-                
-                if submittedText.isEmpty {
-                    doesMatch = true
-                }
-                
-                if doesMatch {
-                    print("\(line) \(key)")
-                    let startRange = max(0, index - linesBefore)
-                    let endRange = min(lines.count, index + linesAfter + 1)
-                    
-                    for contextIndex in startRange..<endRange {
-                        let contextLine = lines[contextIndex]
-                        if !filteredLines.contains(where: { $0.lineNumber == contextIndex + 1 && $0.file == key }) {
-                            filteredLines.append((lineNumber: contextIndex + 1, text: contextLine, file: key, id: UUID()))
-                        }
-                    }
-                    
-                    if filteredLines.count >= maxLine() {
-                        break
-                    }
-                }
-            }
+        let searchTerm = isCaseSensitive ? submittedText : submittedText.lowercased()
+        let regex: NSRegularExpression?
+        if isRegEx {
+            regex = try? NSRegularExpression(pattern: searchTerm, options: isCaseSensitive ? [] : .caseInsensitive)
+        } else {
+            regex = nil
         }
         
-        if(filteredLines.count >= maxLine()) {
-            filteredLines.append((lineNumber: -1, text: messageMaxLine, file: "", id: UUID()))
+        let bookmarkedSet = Set(bookmarkedLines)
+        
+        let filteredLines = fileContent.flatMap { (key, value) -> [(lineNumber: Int, text: String, file: String, id: UUID)] in
+            let lines = value.components(separatedBy: "\n")
+            
+            return lines.enumerated().lazy.flatMap { (index, line) -> [(lineNumber: Int, text: String, file: String, id: UUID)] in
+                let doesMatch: Bool
+                if submittedText.isEmpty {
+                    doesMatch = true
+                } else if let regex = regex {
+                    let range = NSRange(location: 0, length: line.utf16.count)
+                    doesMatch = regex.firstMatch(in: line, options: [], range: range) != nil
+                } else if isCaseSensitive {
+                    doesMatch = line.contains(searchTerm)
+                } else {
+                    doesMatch = line.lowercased().contains(searchTerm)
+                }
+                
+                let finalMatch = isInverted ? !doesMatch : doesMatch
+                
+                if finalMatch || bookmarkedSet.contains(line) {
+                    let startRange = max(0, index - linesBefore)
+                    let endRange = min(lines.count, index + linesAfter + 1)
+                    return (startRange..<endRange).map { contextIndex in
+                        (lineNumber: contextIndex + 1, text: lines[contextIndex], file: key, id: UUID())
+                    }
+                }
+                return []
+            }
         }
         
         var result = Array(filteredLines.prefix(maxLine()))
         
-        print(result)
+        if result.count >= maxLine() {
+            result.append((lineNumber: -1, text: messageMaxLine, file: "", id: UUID()))
+        }
         
         if isReverse {
             result.reverse()
@@ -537,7 +521,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
                     print("Unable to read file content: \(error)")
                 }
                 
-                print(fC)
+                //print(fC)
                 DispatchQueue.main.async {
                     self.parent.fileContent = fC
                 }
