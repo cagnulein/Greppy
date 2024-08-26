@@ -424,6 +424,7 @@ struct ContentView: View {
         
         let filteredLines = fileContent.flatMap { (key, value) -> [(lineNumber: Int, text: String, file: String, id: UUID)] in
             let lines = value.components(separatedBy: "\n")
+            var includedRanges: [(Int, Int)] = []
             
             return lines.enumerated().lazy.flatMap { (index, line) -> [(lineNumber: Int, text: String, file: String, id: UUID)] in
                 let doesMatch: Bool
@@ -443,7 +444,12 @@ struct ContentView: View {
                 if finalMatch || bookmarkedSet.contains(line) {
                     let startRange = max(0, index - linesBefore)
                     let endRange = min(lines.count, index + linesAfter + 1)
-                    return (startRange..<endRange).map { contextIndex in
+                    
+                    // Verifica sovrapposizioni e unisce i range se necessario
+                    let newRange = (startRange, endRange)
+                    includedRanges = mergeRanges(includedRanges + [newRange])
+                    
+                    return includedRanges.last!.0..<includedRanges.last!.1.map { contextIndex in
                         (lineNumber: contextIndex + 1, text: lines[contextIndex], file: key, id: UUID())
                     }
                 }
@@ -464,7 +470,22 @@ struct ContentView: View {
         return result
     }
 
-
+    private func mergeRanges(_ ranges: [(Int, Int)]) -> [(Int, Int)] {
+        guard !ranges.isEmpty else { return [] }
+        var sortedRanges = ranges.sorted { $0.0 < $1.0 }
+        var mergedRanges: [(Int, Int)] = [sortedRanges[0]]
+        
+        for range in sortedRanges.dropFirst() {
+            guard var lastRange = mergedRanges.last else { break }
+            if range.0 <= lastRange.1 {
+                mergedRanges[mergedRanges.count - 1].1 = max(lastRange.1, range.1)
+            } else {
+                mergedRanges.append(range)
+            }
+        }
+        
+        return mergedRanges
+    }
 
     func loadFileContent(from url: URL) -> String {
         bookmarkedLines = []
