@@ -449,8 +449,10 @@ struct ContentView: View {
                     let newRange = (startRange, endRange)
                     includedRanges = mergeRanges(includedRanges + [newRange])
                     
-                    return includedRanges.last!.0..<includedRanges.last!.1.map { contextIndex in
-                        (lineNumber: contextIndex + 1, text: lines[contextIndex], file: key, id: UUID())
+                    if let lastRange = includedRanges.last {
+                        return (lastRange.0..<lastRange.1).map { contextIndex in
+                            (lineNumber: contextIndex + 1, text: lines[contextIndex], file: key, id: UUID())
+                        }
                     }
                 }
                 return []
