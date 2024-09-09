@@ -411,7 +411,7 @@ struct ContentView: View {
         let isCaseSensitive = UserDefaults.standard.bool(forKey: "caseSensitiveSearch")
         let isInverted = UserDefaults.standard.bool(forKey: "inverted")
         let isRegEx = UserDefaults.standard.bool(forKey: "regEx")
-        
+
         let searchTerm = isCaseSensitive ? submittedText : submittedText.lowercased()
         let regex: NSRegularExpression?
         if isRegEx {
@@ -419,13 +419,13 @@ struct ContentView: View {
         } else {
             regex = nil
         }
-        
+
         let bookmarkedSet = Set(bookmarkedLines)
-        
+
         let filteredLines = fileContent.flatMap { (key, value) -> [(lineNumber: Int, text: String, file: String, id: UUID)] in
             let lines = value.components(separatedBy: "\n")
-            var lastIncludedLine = -linesAfter - 1 // Inizializza a un valore che garantisce che la prima corrispondenza includa sempre le linee precedenti
-            
+            var lastIncludedLineIndex = -1 // Initialize to a value that ensures the first match always includes the previous lines
+
             return lines.enumerated().compactMap { (index, line) -> (lineNumber: Int, text: String, file: String, id: UUID)? in
                 let doesMatch: Bool
                 if submittedText.isEmpty {
@@ -438,34 +438,34 @@ struct ContentView: View {
                 } else {
                     doesMatch = line.lowercased().contains(searchTerm)
                 }
-                
+
                 let finalMatch = isInverted ? !doesMatch : doesMatch
-                
+
                 if finalMatch || bookmarkedSet.contains(line) {
-                    if index > lastIncludedLine + linesAfter {
-                        lastIncludedLine = index
+                    if index > lastIncludedLineIndex + linesAfter {
+                        lastIncludedLineIndex = index
                         return (lineNumber: index + 1, text: line, file: key, id: UUID())
                     }
                 }
-                
-                if index >= lastIncludedLine - linesBefore && index <= lastIncludedLine + linesAfter {
+
+                if index >= max(lastIncludedLineIndex - linesBefore, 0) && index <= lastIncludedLineIndex + linesAfter {
                     return (lineNumber: index + 1, text: line, file: key, id: UUID())
                 }
-                
+
                 return nil
             }
         }
-        
+
         var result = Array(filteredLines.prefix(maxLine()))
-        
+
         if result.count >= maxLine() {
             result.append((lineNumber: -1, text: messageMaxLine, file: "", id: UUID()))
         }
-        
+
         if isReverse {
             result.reverse()
         }
-        
+
         return result
     }
 
