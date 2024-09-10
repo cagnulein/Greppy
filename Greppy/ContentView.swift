@@ -411,7 +411,7 @@ struct ContentView: View {
         let isCaseSensitive = UserDefaults.standard.bool(forKey: "caseSensitiveSearch")
         let isInverted = UserDefaults.standard.bool(forKey: "inverted")
         let isRegEx = UserDefaults.standard.bool(forKey: "regEx")
-        
+
         let searchTerm = isCaseSensitive ? submittedText : submittedText.lowercased()
         let regex: NSRegularExpression?
         if isRegEx {
@@ -419,14 +419,16 @@ struct ContentView: View {
         } else {
             regex = nil
         }
-        
+
         let bookmarkedSet = Set(bookmarkedLines)
-        
+
         let filteredLines = fileContent.flatMap { (key, value) -> [(lineNumber: Int, text: String, file: String, id: UUID)] in
             let lines = value.components(separatedBy: "\n")
-            var lastIncludedLine = -linesAfter - 1 // Inizializza a un valore che garantisce che la prima corrispondenza includa sempre le linee precedenti
-            
-            return lines.enumerated().compactMap { (index, line) -> (lineNumber: Int, text: String, file: String, id: UUID)? in
+            var result: [(lineNumber: Int, text: String, file: String, id: UUID)] = []
+            var matchIndices: [Int] = []
+
+            // Trova tutti i match
+            for (index, line) in lines.enumerated() {
                 let doesMatch: Bool
                 if submittedText.isEmpty {
                     doesMatch = true
@@ -438,34 +440,48 @@ struct ContentView: View {
                 } else {
                     doesMatch = line.lowercased().contains(searchTerm)
                 }
-                
+
                 let finalMatch = isInverted ? !doesMatch : doesMatch
-                
+
                 if finalMatch || bookmarkedSet.contains(line) {
-                    if index > lastIncludedLine + linesAfter {
-                        lastIncludedLine = index
-                        return (lineNumber: index + 1, text: line, file: key, id: UUID())
-                    }
+                    matchIndices.append(index)
                 }
-                
-                if index >= lastIncludedLine - linesBefore && index <= lastIncludedLine + linesAfter {
-                    return (lineNumber: index + 1, text: line, file: key, id: UUID())
-                }
-                
-                return nil
             }
+
+            // Processa i match e aggiungi le linee prima e dopo
+            for matchIndex in matchIndices {
+                let startIndex = max(0, matchIndex - linesBefore)
+                let endIndex = min(lines.count - 1, matchIndex + linesAfter)
+
+                for index in startIndex...endIndex {
+                    let line = lines[index]
+                    result.append((lineNumber: index + 1, text: line, file: key, id: UUID()))
+                }
+            }
+
+            // Rimuovi i duplicati mantenendo l'ordine
+            var uniqueResult: [(lineNumber: Int, text: String, file: String, id: UUID)] = []
+            var seenLineNumbers = Set<Int>()
+            for item in result {
+                if !seenLineNumbers.contains(item.lineNumber) {
+                    uniqueResult.append(item)
+                    seenLineNumbers.insert(item.lineNumber)
+                }
+            }
+
+            return uniqueResult
         }
-        
+
         var result = Array(filteredLines.prefix(maxLine()))
-        
+
         if result.count >= maxLine() {
             result.append((lineNumber: -1, text: messageMaxLine, file: "", id: UUID()))
         }
-        
+
         if isReverse {
             result.reverse()
         }
-        
+
         return result
     }
 
