@@ -42,7 +42,7 @@ struct settingLinesBeforeAfterView: View {
                     Stepper(value: $fontSize, in: 6...32) {
                         Text("Font Size: \(fontSize)")
                     }                    
-                    Stepper(value: $maxLines, in: 1000...10000, step: 100) {
+                    Stepper(value: $maxLines, in: 1000...1000000, step: 100) {
                         Text("Max Output Lines: \(maxLines)")
                     }
                 }
