@@ -266,6 +266,16 @@ struct ContentView: View {
                                             Label("Use as a new source", systemImage: "doc.badge.plus")
                                         }
                                         Button {
+                                            let allFilteredLines = filteredContent(for: searchTerm).map { $0.text }
+                                            for line in allFilteredLines {
+                                                if line != messageMaxLine && !bookmarkedLines.contains(line) {
+                                                    bookmarkedLines.append(line)
+                                                }
+                                            }
+                                        } label: {
+                                            Label("Bookmark all the lines", systemImage: "bookmark")
+                                        }
+                                        Button {
                                             self.showSaveDocumentPicker = true
                                             let temporaryDirectoryURL = FileManager.default.temporaryDirectory
                                             let temporaryFileURL = temporaryDirectoryURL.appendingPathComponent("ExportedFile.txt")
