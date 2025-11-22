@@ -516,19 +516,19 @@ struct ContentView: View {
                 print("📦 Extracted \(extractedFiles.count) files from ZIP")
 
                 if extractedFiles.isEmpty {
-                    // Mostra un messaggio visibile nell'UI
+                    // Show visible message in UI
                     result["⚠️ \(url.lastPathComponent)"] = """
-                    ⚠️ NESSUN FILE DI TESTO TROVATO NELLO ZIP
+                    ⚠️ NO TEXT FILES FOUND IN ZIP
 
-                    Nome file: \(url.lastPathComponent)
-                    Lo ZIP è stato letto ma non contiene file di testo leggibili.
+                    File name: \(url.lastPathComponent)
+                    The ZIP was read but contains no readable text files.
 
-                    Possibili cause:
-                    - Lo ZIP contiene solo file binari (immagini, eseguibili, ecc.)
-                    - I file sono in un formato non testuale
-                    - Errore durante la decompressione
+                    Possible causes:
+                    - ZIP contains only binary files (images, executables, etc.)
+                    - Files are in a non-text format
+                    - Decompression error
 
-                    Controlla i log della console per dettagli.
+                    Check console logs for details.
                     """
                 } else {
                     for (filename, content) in extractedFiles {
@@ -547,16 +547,16 @@ struct ContentView: View {
         } catch {
             print("❌ Error loading file: \(error)")
             result["❌ ERROR: \(url.lastPathComponent)"] = """
-            ❌ ERRORE DURANTE L'APERTURA DEL FILE
+            ❌ ERROR OPENING FILE
 
-            Nome file: \(url.lastPathComponent)
-            Errore: \(error.localizedDescription)
+            File name: \(url.lastPathComponent)
+            Error: \(error.localizedDescription)
 
-            Dettagli tecnici:
+            Technical details:
             \(error)
 
-            Se è un file ZIP, controlla che non sia corrotto.
-            Se è un file di testo, controlla l'encoding.
+            If this is a ZIP file, check that it's not corrupted.
+            If this is a text file, check the encoding.
             """
         }
 
@@ -612,19 +612,19 @@ struct DocumentPicker: UIViewControllerRepresentable {
                         print("📦 Extracted \(extractedFiles.count) files from ZIP")
 
                         if extractedFiles.isEmpty {
-                            // Mostra un messaggio visibile nell'UI
+                            // Show visible message in UI
                             fC["⚠️ \(url.lastPathComponent)"] = """
-                            ⚠️ NESSUN FILE DI TESTO TROVATO NELLO ZIP
+                            ⚠️ NO TEXT FILES FOUND IN ZIP
 
-                            Nome file: \(url.lastPathComponent)
-                            Lo ZIP è stato letto ma non contiene file di testo leggibili.
+                            File name: \(url.lastPathComponent)
+                            The ZIP was read but contains no readable text files.
 
-                            Possibili cause:
-                            - Lo ZIP contiene solo file binari (immagini, eseguibili, ecc.)
-                            - I file sono in un formato non testuale
-                            - Errore durante la decompressione
+                            Possible causes:
+                            - ZIP contains only binary files (images, executables, etc.)
+                            - Files are in a non-text format
+                            - Decompression error
 
-                            Controlla i log della console per dettagli.
+                            Check console logs for details.
                             """
                         } else {
                             for (filename, content) in extractedFiles {
@@ -643,18 +643,18 @@ struct DocumentPicker: UIViewControllerRepresentable {
                     }
                 } catch {
                     print("❌ Unable to read file content: \(error)")
-                    // Mostra l'errore nell'UI
+                    // Show error in UI
                     fC["❌ ERROR: \(url.lastPathComponent)"] = """
-                    ❌ ERRORE DURANTE L'APERTURA DEL FILE
+                    ❌ ERROR OPENING FILE
 
-                    Nome file: \(url.lastPathComponent)
-                    Errore: \(error.localizedDescription)
+                    File name: \(url.lastPathComponent)
+                    Error: \(error.localizedDescription)
 
-                    Dettagli tecnici:
+                    Technical details:
                     \(error)
 
-                    Se è un file ZIP, controlla che non sia corrotto.
-                    Se è un file di testo, controlla l'encoding.
+                    If this is a ZIP file, check that it's not corrupted.
+                    If this is a text file, check the encoding.
                     """
                 }
 
@@ -737,6 +737,8 @@ class FileHelper {
 
     public static func extractAndReadZip(from zipURL: URL) throws -> [String: String] {
         var extractedContents: [String: String] = [:]
+        var allFilesFound: [String] = []
+        var failedFiles: [(String, String)] = [] // (filename, reason)
 
         print("🔍 Starting ZIP extraction from: \(zipURL.lastPathComponent)")
 
@@ -789,6 +791,9 @@ class FileHelper {
 
                 print("📁 Found: \(filename) (compression: \(compressionMethod), size: \(compressedSize))")
 
+                // Track all files found
+                allFilesFound.append(filename)
+
                 // Salta i file directory (terminano con /)
                 if filename.hasSuffix("/") {
                     print("📂 Skipping directory: \(filename)")
@@ -813,6 +818,7 @@ class FileHelper {
                             print("✅ Decompressed to \(data.count) bytes")
                         } else {
                             print("❌ DEFLATE decompression failed")
+                            failedFiles.append((filename, "DEFLATE decompression failed"))
                         }
                     } else if compressionMethod == 0 {
                         // Stored (no compression)
@@ -820,15 +826,17 @@ class FileHelper {
                         decompressedData = compressedData
                     } else {
                         print("⚠️  Unsupported compression method: \(compressionMethod)")
+                        failedFiles.append((filename, "Unsupported compression method \(compressionMethod)"))
                     }
 
                     if let data = decompressedData {
                         // Prova a convertire in stringa usando vari encoding
-                        if let content = tryDecodeString(from: data), !content.isEmpty {
+                        if let content = tryDecodeString(from: data) {
                             extractedContents[filename] = content
                             print("✅ Successfully loaded \(filename) (\(content.count) chars)")
                         } else {
-                            print("⚠️  Cannot decode \(filename) as text")
+                            print("⚠️  Cannot decode \(filename) as text (data size: \(data.count) bytes)")
+                            failedFiles.append((filename, "Cannot decode as text (probably binary file)"))
                         }
                     }
                 } else {
@@ -842,6 +850,14 @@ class FileHelper {
         }
 
         print("🎉 ZIP extraction complete: \(filesFound) files found, \(extractedContents.count) text files loaded")
+
+        if !failedFiles.isEmpty {
+            print("⚠️  Failed to load \(failedFiles.count) file(s):")
+            for (filename, reason) in failedFiles {
+                print("   - \(filename): \(reason)")
+            }
+        }
+
         return extractedContents
     }
 
@@ -888,17 +904,46 @@ class FileHelper {
     }
 
     private static func tryDecodeString(from data: Data) -> String? {
+        // Use same encodings as readWithMultipleEncodings for consistency
         let encodings: [String.Encoding] = [
-            .utf8, .ascii, .isoLatin1, .windowsCP1252, .utf16,
-            .utf16BigEndian, .utf16LittleEndian, .macOSRoman
+            .ascii,
+            .nextstep,
+            .japaneseEUC,
+            .utf8,
+            .isoLatin1,
+            .symbol,
+            .nonLossyASCII,
+            .shiftJIS,
+            .isoLatin2,
+            .unicode,
+            .windowsCP1251,
+            .windowsCP1252,
+            .windowsCP1253,
+            .windowsCP1254,
+            .windowsCP1250,
+            .iso2022JP,
+            .macOSRoman,
+            .utf16,
+            .utf16BigEndian,
+            .utf16LittleEndian,
+            .utf32,
+            .utf32BigEndian,
+            .utf32LittleEndian
         ]
 
+        print("🔤 Attempting to decode \(data.count) bytes as text...")
+
         for encoding in encodings {
-            if let string = String(data: data, encoding: encoding), !string.isEmpty {
-                return string
+            if let string = String(data: data, encoding: encoding) {
+                // Don't check isEmpty - some files might be legitimately empty
+                if string.count > 0 {
+                    print("✅ Successfully decoded with encoding: \(encoding)")
+                    return string
+                }
             }
         }
 
+        print("❌ Failed to decode data with any encoding")
         return nil
     }
 }
