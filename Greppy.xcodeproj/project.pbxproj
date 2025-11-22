@@ -39,6 +39,7 @@
 		87AA61BE2B7903910084639A /* GreppyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GreppyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		87AA61C02B7903910084639A /* GreppyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreppyUITests.swift; sourceTree = "<group>"; };
 		87AA61C22B7903910084639A /* GreppyUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreppyUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		87ZIPARCH2B7903910084639B /* Greppy-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Greppy-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +83,7 @@
 			children = (
 				874F87DA2B88E422008EA384 /* SaveDocumentPicker.swift */,
 				87AA61B92B78F1730084639A /* Info.plist */,
+				87ZIPARCH2B7903910084639B /* Greppy-Bridging-Header.h */,
 				874386552B78B7F100C10504 /* GreppyApp.swift */,
 				874386572B78B7F100C10504 /* ContentView.swift */,
 				8736307F2B84E39E00436D44 /* settingLinesBeforeAfter.swift */,
@@ -381,6 +383,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.cagnulein.Greppy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Greppy/Greppy-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -413,6 +416,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.cagnulein.Greppy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Greppy/Greppy-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
