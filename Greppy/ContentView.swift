@@ -739,12 +739,18 @@ class FileHelper {
         var extractedContents: [String: String] = [:]
         var allFilesFound: [String] = []
         var failedFiles: [(String, String)] = [] // (filename, reason)
+        var debugLog: [String] = [] // Collect all log messages
 
-        print("🔍 Starting ZIP extraction from: \(zipURL.lastPathComponent)")
+        let log = { (message: String) in
+            print(message)
+            debugLog.append(message)
+        }
+
+        log("🔍 Starting ZIP extraction from: \(zipURL.lastPathComponent)")
 
         // Leggi il file ZIP come dati binari
         let zipData = try Data(contentsOf: zipURL)
-        print("📊 ZIP file size: \(zipData.count) bytes")
+        log("📊 ZIP file size: \(zipData.count) bytes")
 
         // Cerca i local file headers nel file ZIP
         let localFileHeaderSignature: UInt32 = 0x04034b50
@@ -789,22 +795,22 @@ class FileHelper {
                 let filenameStart = offset + 30
                 let filenameData = zipData.subdata(in: filenameStart..<(filenameStart + filenameLength))
                 guard let filename = String(data: filenameData, encoding: .utf8) else {
-                    print("⚠️  Cannot decode filename at offset \(offset)")
+                    log("⚠️  Cannot decode filename at offset \(offset)")
                     offset += 30 + filenameLength + extraFieldLength + compressedSize
                     continue
                 }
 
-                print("📁 Found: \(filename)")
-                print("   Compression method: \(compressionMethod) (0=stored, 8=DEFLATE)")
-                print("   Compressed size: \(compressedSize) bytes")
-                print("   Uncompressed size: \(uncompressedSize) bytes")
+                log("📁 Found: \(filename)")
+                log("   Compression method: \(compressionMethod) (0=stored, 8=DEFLATE)")
+                log("   Compressed size: \(compressedSize) bytes")
+                log("   Uncompressed size: \(uncompressedSize) bytes")
 
                 // Track all files found
                 allFilesFound.append(filename)
 
                 // Salta i file directory (terminano con /)
                 if filename.hasSuffix("/") {
-                    print("📂 Skipping directory: \(filename)")
+                    log("📂 Skipping directory: \(filename)")
                     offset += 30 + filenameLength + extraFieldLength + compressedSize
                     continue
                 }
@@ -820,15 +826,15 @@ class FileHelper {
 
                     if compressionMethod == 8 {
                         // DEFLATE compression
-                        print("🔄 Decompressing with DEFLATE...")
+                        log("🔄 Decompressing with DEFLATE...")
                         decompressedData = decompressData(compressedData)
                         if let data = decompressedData {
-                            print("✅ Decompressed to \(data.count) bytes (expected \(uncompressedSize))")
+                            log("✅ Decompressed to \(data.count) bytes (expected \(uncompressedSize))")
 
                             // Show hex dump of first 32 bytes
                             let previewLength = min(32, data.count)
                             let previewBytes = data.prefix(previewLength).map { String(format: "%02X", $0) }.joined(separator: " ")
-                            print("   First \(previewLength) bytes (hex): \(previewBytes)")
+                            log("   First \(previewLength) bytes (hex): \(previewBytes)")
 
                             // Try to show as ASCII for quick check
                             let asciiPreview = data.prefix(previewLength).map { byte -> String in
@@ -844,39 +850,39 @@ class FileHelper {
                                     return "·"
                                 }
                             }.joined()
-                            print("   First \(previewLength) bytes (ASCII): \(asciiPreview)")
+                            log("   First \(previewLength) bytes (ASCII): \(asciiPreview)")
                         } else {
-                            print("❌ DEFLATE decompression failed")
+                            log("❌ DEFLATE decompression failed")
                             failedFiles.append((filename, "DEFLATE decompression failed"))
                         }
                     } else if compressionMethod == 0 {
                         // Stored (no compression)
-                        print("📋 File stored without compression")
+                        log("📋 File stored without compression")
                         decompressedData = compressedData
 
                         // Show hex dump of first 32 bytes
                         let previewLength = min(32, compressedData.count)
                         let previewBytes = compressedData.prefix(previewLength).map { String(format: "%02X", $0) }.joined(separator: " ")
-                        print("   First \(previewLength) bytes (hex): \(previewBytes)")
+                        log("   First \(previewLength) bytes (hex): \(previewBytes)")
                     } else {
-                        print("⚠️  Unsupported compression method: \(compressionMethod)")
+                        log("⚠️  Unsupported compression method: \(compressionMethod)")
                         failedFiles.append((filename, "Unsupported compression method \(compressionMethod)"))
                     }
 
                     if let data = decompressedData {
-                        print("🔤 Attempting to decode \(data.count) bytes as text...")
+                        log("🔤 Attempting to decode \(data.count) bytes as text...")
                         // Prova a convertire in stringa usando vari encoding
-                        if let content = tryDecodeString(from: data) {
+                        if let content = tryDecodeString(from: data, log: log) {
                             extractedContents[filename] = content
-                            print("✅ Successfully loaded \(filename) (\(content.count) chars)")
+                            log("✅ Successfully loaded \(filename) (\(content.count) chars)")
                         } else {
-                            print("❌ Cannot decode \(filename) as text (data size: \(data.count) bytes)")
-                            print("   This is probably a binary file, not a text file")
+                            log("❌ Cannot decode \(filename) as text (data size: \(data.count) bytes)")
+                            log("   This is probably a binary file, not a text file")
                             failedFiles.append((filename, "Cannot decode as text (probably binary file)"))
                         }
                     }
                 } else {
-                    print("❌ Data range out of bounds for \(filename)")
+                    log("❌ Data range out of bounds for \(filename)")
                 }
 
                 offset += 30 + filenameLength + extraFieldLength + compressedSize
@@ -885,14 +891,28 @@ class FileHelper {
             }
         }
 
-        print("🎉 ZIP extraction complete: \(filesFound) files found, \(extractedContents.count) text files loaded")
+        log("🎉 ZIP extraction complete: \(filesFound) files found, \(extractedContents.count) text files loaded")
 
         if !failedFiles.isEmpty {
-            print("⚠️  Failed to load \(failedFiles.count) file(s):")
+            log("⚠️  Failed to load \(failedFiles.count) file(s):")
             for (filename, reason) in failedFiles {
-                print("   - \(filename): \(reason)")
+                log("   - \(filename): \(reason)")
             }
         }
+
+        // Add debug log as a special file in the app UI
+        let logContent = debugLog.joined(separator: "\n")
+        extractedContents["🔍 Debug Log.txt"] = """
+        DEBUG LOG - ZIP EXTRACTION
+        ==========================
+        File: \(zipURL.lastPathComponent)
+        Date: \(Date())
+
+        \(logContent)
+
+        ==========================
+        END OF LOG
+        """
 
         return extractedContents
     }
@@ -939,7 +959,7 @@ class FileHelper {
         return decompressedData.isEmpty ? nil : decompressedData
     }
 
-    private static func tryDecodeString(from data: Data) -> String? {
+    private static func tryDecodeString(from data: Data, log: ((String) -> Void)? = nil) -> String? {
         // Use same encodings as readWithMultipleEncodings for consistency
         let encodings: [String.Encoding] = [
             .ascii,
@@ -971,13 +991,23 @@ class FileHelper {
             if let string = String(data: data, encoding: encoding) {
                 // Don't check isEmpty - some files might be legitimately empty
                 if string.count > 0 {
-                    print("   ✅ Decoded successfully with encoding: \(encoding)")
+                    let message = "   ✅ Decoded successfully with encoding: \(encoding)"
+                    if let log = log {
+                        log(message)
+                    } else {
+                        print(message)
+                    }
                     return string
                 }
             }
         }
 
-        print("   ❌ Failed with all \(encodings.count) encodings")
+        let message = "   ❌ Failed with all \(encodings.count) encodings"
+        if let log = log {
+            log(message)
+        } else {
+            print(message)
+        }
         return nil
     }
 }
