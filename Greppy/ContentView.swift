@@ -513,7 +513,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
     @Binding var fileContent: [String: String]
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText, UTType.zipArchive], asCopy: true)
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText, UTType.zip, UTType.data, UTType.content], asCopy: true)
         picker.allowsMultipleSelection = true
         picker.delegate = context.coordinator
         return picker
@@ -718,23 +718,26 @@ class FileHelper {
                 defer { inflateEnd(&stream) }
 
                 var buffer = [UInt8](repeating: 0, count: bufferSize)
-                repeat {
-                    stream.next_out = &buffer
-                    stream.avail_out = uint(bufferSize)
+                var finished = false
 
-                    let status = inflate(&stream, Z_NO_FLUSH)
+                while !finished {
+                    let status = buffer.withUnsafeMutableBytes { bufferPointer -> Int32 in
+                        stream.next_out = bufferPointer.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                        stream.avail_out = uint(bufferSize)
+                        return inflate(&stream, Z_NO_FLUSH)
+                    }
+
                     let bytesWritten = bufferSize - Int(stream.avail_out)
-
                     if bytesWritten > 0 {
                         decompressedData.append(buffer, count: bytesWritten)
                     }
 
                     if status == Z_STREAM_END {
-                        break
-                    } else if status != Z_OK {
-                        return
+                        finished = true
+                    } else if status != Z_OK || stream.avail_out != 0 {
+                        finished = true
                     }
-                } while stream.avail_out == 0
+                }
             }
         }
 
