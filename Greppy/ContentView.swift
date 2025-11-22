@@ -513,7 +513,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
     @Binding var fileContent: [String: String]
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText], asCopy: true)
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.plainText, UTType.zipArchive], asCopy: true)
         picker.allowsMultipleSelection = true
         picker.delegate = context.coordinator
         return picker
@@ -541,15 +541,26 @@ struct DocumentPicker: UIViewControllerRepresentable {
                         url.stopAccessingSecurityScopedResource()
                     }
                 }
-                
+
                 do {
-                    // Leggi il contenuto del file selezionato
-                    let fileContent = try FileHelper.readWithMultipleEncodings(from: url)
-                    fC[url.lastPathComponent] = fileContent
+                    // Controlla se è un file ZIP
+                    if url.pathExtension.lowercased() == "zip" {
+                        // Decomprime lo ZIP e leggi tutti i file di testo
+                        let extractedFiles = try FileHelper.extractAndReadZip(from: url)
+                        for (filename, content) in extractedFiles {
+                            // Usa il nome del file con il formato "archive.zip/file.txt"
+                            let displayName = "\(url.lastPathComponent)/\(filename)"
+                            fC[displayName] = content
+                        }
+                    } else {
+                        // Leggi il contenuto del file selezionato
+                        let fileContent = try FileHelper.readWithMultipleEncodings(from: url)
+                        fC[url.lastPathComponent] = fileContent
+                    }
                 } catch {
                     print("Unable to read file content: \(error)")
                 }
-                
+
                 //print(fC)
                 DispatchQueue.main.async {
                     self.parent.fileContent = fC
@@ -586,9 +597,9 @@ class FileHelper {
             .utf32BigEndian,
             .utf32LittleEndian
         ]
-        
+
         var fileContent: String = ""
-        
+
         for encoding in encodings {
             do {
                 fileContent = try String(contentsOf: fileURL, encoding: encoding)
@@ -597,11 +608,151 @@ class FileHelper {
                 print("Failed to read file content with encoding \(encoding): \(error)")
             }
         }
-        
+
         /*guard !fileContent.isEmpty else {
             throw NSError(domain: "EncodingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unable to read file with any encoding."])
         }*/
-        
+
         return fileContent
-    }   
+    }
+
+    public static func extractAndReadZip(from zipURL: URL) throws -> [String: String] {
+        var extractedContents: [String: String] = [:]
+
+        // Leggi il file ZIP come dati binari
+        let zipData = try Data(contentsOf: zipURL)
+
+        // Cerca i local file headers nel file ZIP
+        let localFileHeaderSignature: UInt32 = 0x04034b50
+        var offset = 0
+
+        while offset < zipData.count - 30 {
+            // Leggi la signature a 4 byte
+            let signature = zipData.withUnsafeBytes { buffer in
+                buffer.loadUnaligned(fromByteOffset: offset, as: UInt32.self)
+            }
+
+            if signature == localFileHeaderSignature {
+                // Abbiamo trovato un local file header
+                // Offset 26-28: lunghezza nome file (2 byte)
+                let filenameLength = zipData.withUnsafeBytes { buffer in
+                    Int(buffer.loadUnaligned(fromByteOffset: offset + 26, as: UInt16.self))
+                }
+
+                // Offset 28-30: lunghezza extra field (2 byte)
+                let extraFieldLength = zipData.withUnsafeBytes { buffer in
+                    Int(buffer.loadUnaligned(fromByteOffset: offset + 28, as: UInt16.self))
+                }
+
+                // Offset 18-22: dimensione compressa (4 byte)
+                let compressedSize = zipData.withUnsafeBytes { buffer in
+                    Int(buffer.loadUnaligned(fromByteOffset: offset + 18, as: UInt32.self))
+                }
+
+                // Offset 8-10: metodo compressione (2 byte) - 0=stored, 8=deflated
+                let compressionMethod = zipData.withUnsafeBytes { buffer in
+                    Int(buffer.loadUnaligned(fromByteOffset: offset + 8, as: UInt16.self))
+                }
+
+                // Leggi il nome del file
+                let filenameStart = offset + 30
+                let filenameData = zipData.subdata(in: filenameStart..<(filenameStart + filenameLength))
+                guard let filename = String(data: filenameData, encoding: .utf8) else {
+                    offset += 30 + filenameLength + extraFieldLength + compressedSize
+                    continue
+                }
+
+                // Salta i file directory (terminano con /)
+                if filename.hasSuffix("/") {
+                    offset += 30 + filenameLength + extraFieldLength + compressedSize
+                    continue
+                }
+
+                // Posizione dei dati compressi
+                let dataStart = offset + 30 + filenameLength + extraFieldLength
+                let dataEnd = dataStart + compressedSize
+
+                if dataEnd <= zipData.count {
+                    let compressedData = zipData.subdata(in: dataStart..<dataEnd)
+
+                    var decompressedData: Data?
+
+                    if compressionMethod == 8 {
+                        // DEFLATE compression
+                        decompressedData = decompressData(compressedData)
+                    } else if compressionMethod == 0 {
+                        // Stored (no compression)
+                        decompressedData = compressedData
+                    }
+
+                    if let data = decompressedData {
+                        // Prova a convertire in stringa usando vari encoding
+                        if let content = tryDecodeString(from: data), !content.isEmpty {
+                            extractedContents[filename] = content
+                        }
+                    }
+                }
+
+                offset += 30 + filenameLength + extraFieldLength + compressedSize
+            } else {
+                offset += 1
+            }
+        }
+
+        return extractedContents
+    }
+
+    private static func decompressData(_ data: Data) -> Data? {
+        let bufferSize = 64 * 1024
+        var decompressedData = Data()
+
+        data.withUnsafeBytes { (inputPointer: UnsafeRawBufferPointer) in
+            guard let baseAddress = inputPointer.baseAddress else { return }
+
+            var stream = z_stream()
+            stream.next_in = UnsafeMutablePointer<UInt8>(mutating: baseAddress.assumingMemoryBound(to: UInt8.self))
+            stream.avail_in = uint(data.count)
+
+            // Inizializza per DEFLATE raw (senza header zlib)
+            if inflateInit2_(&stream, -MAX_WBITS, ZLIB_VERSION, Int32(MemoryLayout<z_stream>.size)) == Z_OK {
+                defer { inflateEnd(&stream) }
+
+                var buffer = [UInt8](repeating: 0, count: bufferSize)
+                repeat {
+                    stream.next_out = &buffer
+                    stream.avail_out = uint(bufferSize)
+
+                    let status = inflate(&stream, Z_NO_FLUSH)
+                    let bytesWritten = bufferSize - Int(stream.avail_out)
+
+                    if bytesWritten > 0 {
+                        decompressedData.append(buffer, count: bytesWritten)
+                    }
+
+                    if status == Z_STREAM_END {
+                        break
+                    } else if status != Z_OK {
+                        return
+                    }
+                } while stream.avail_out == 0
+            }
+        }
+
+        return decompressedData.isEmpty ? nil : decompressedData
+    }
+
+    private static func tryDecodeString(from data: Data) -> String? {
+        let encodings: [String.Encoding] = [
+            .utf8, .ascii, .isoLatin1, .windowsCP1252, .utf16,
+            .utf16BigEndian, .utf16LittleEndian, .macOSRoman
+        ]
+
+        for encoding in encodings {
+            if let string = String(data: data, encoding: encoding), !string.isEmpty {
+                return string
+            }
+        }
+
+        return nil
+    }
 }
