@@ -802,8 +802,8 @@ class FileHelper {
 
                 log("📁 Found: \(filename)")
                 log("   Compression method: \(compressionMethod) (0=stored, 8=DEFLATE)")
-                log("   Compressed size: \(compressedSize) bytes")
-                log("   Uncompressed size: \(uncompressedSize) bytes")
+                log("   Compressed size from local header: \(compressedSize) bytes")
+                log("   Uncompressed size from local header: \(uncompressedSize) bytes")
 
                 // Track all files found
                 allFilesFound.append(filename)
@@ -812,6 +812,18 @@ class FileHelper {
                 if filename.hasSuffix("/") {
                     log("📂 Skipping directory: \(filename)")
                     offset += 30 + filenameLength + extraFieldLength + compressedSize
+                    continue
+                }
+
+                // Se compressed size è 0, il file usa data descriptor
+                // Dobbiamo saltarlo e usare il Central Directory invece
+                if compressedSize == 0 {
+                    log("⚠️  Compressed size is 0 - file uses data descriptor")
+                    log("   Skipping local header, will read from Central Directory instead")
+                    failedFiles.append((filename, "Local header has size 0 - need Central Directory"))
+
+                    // Cerca il prossimo local file header invece di calcolare l'offset
+                    offset += 30 + filenameLength + extraFieldLength
                     continue
                 }
 
@@ -892,6 +904,152 @@ class FileHelper {
         }
 
         log("🎉 ZIP extraction complete: \(filesFound) files found, \(extractedContents.count) text files loaded")
+
+        // Se ci sono file falliti con size 0, proviamo a leggerli dal Central Directory
+        if !failedFiles.isEmpty && failedFiles.contains(where: { $0.1.contains("size 0") }) {
+            log("")
+            log("📖 Reading Central Directory for files with size 0...")
+
+            // Cerca End of Central Directory Record (EOCD) dalla fine del file
+            // Signature: 0x06054b50
+            let eocdSignature: UInt32 = 0x06054b50
+            var eocdOffset = -1
+
+            // Cerca dalla fine (max 65KB indietro per il commento)
+            let searchStart = max(0, zipData.count - 65536)
+            for i in stride(from: zipData.count - 22, through: searchStart, by: -1) {
+                if i + 4 <= zipData.count {
+                    let sig = zipData.withUnsafeBytes { buffer in
+                        buffer.loadUnaligned(fromByteOffset: i, as: UInt32.self)
+                    }
+                    if sig == eocdSignature {
+                        eocdOffset = i
+                        log("✅ Found End of Central Directory at offset \(i)")
+                        break
+                    }
+                }
+            }
+
+            if eocdOffset >= 0 {
+                // Leggi offset del Central Directory (offset 16-20 in EOCD)
+                let centralDirOffset = zipData.withUnsafeBytes { buffer in
+                    Int(buffer.loadUnaligned(fromByteOffset: eocdOffset + 16, as: UInt32.self))
+                }
+
+                let centralDirSize = zipData.withUnsafeBytes { buffer in
+                    Int(buffer.loadUnaligned(fromByteOffset: eocdOffset + 12, as: UInt32.self))
+                }
+
+                log("📁 Central Directory at offset \(centralDirOffset), size \(centralDirSize) bytes")
+
+                // Leggi il Central Directory
+                var cdOffset = centralDirOffset
+                let cdSignature: UInt32 = 0x02014b50
+
+                while cdOffset < centralDirOffset + centralDirSize {
+                    let sig = zipData.withUnsafeBytes { buffer in
+                        buffer.loadUnaligned(fromByteOffset: cdOffset, as: UInt32.self)
+                    }
+
+                    if sig == cdSignature {
+                        // Central Directory File Header trovato
+                        let cdCompMethod = zipData.withUnsafeBytes { buffer in
+                            Int(buffer.loadUnaligned(fromByteOffset: cdOffset + 10, as: UInt16.self))
+                        }
+
+                        let cdCompSize = zipData.withUnsafeBytes { buffer in
+                            Int(buffer.loadUnaligned(fromByteOffset: cdOffset + 20, as: UInt32.self))
+                        }
+
+                        let cdUncompSize = zipData.withUnsafeBytes { buffer in
+                            Int(buffer.loadUnaligned(fromByteOffset: cdOffset + 24, as: UInt32.self))
+                        }
+
+                        let cdFilenameLen = zipData.withUnsafeBytes { buffer in
+                            Int(buffer.loadUnaligned(fromByteOffset: cdOffset + 28, as: UInt16.self))
+                        }
+
+                        let cdExtraLen = zipData.withUnsafeBytes { buffer in
+                            Int(buffer.loadUnaligned(fromByteOffset: cdOffset + 30, as: UInt16.self))
+                        }
+
+                        let cdCommentLen = zipData.withUnsafeBytes { buffer in
+                            Int(buffer.loadUnaligned(fromByteOffset: cdOffset + 32, as: UInt16.self))
+                        }
+
+                        let localHeaderOffset = zipData.withUnsafeBytes { buffer in
+                            Int(buffer.loadUnaligned(fromByteOffset: cdOffset + 42, as: UInt32.self))
+                        }
+
+                        // Nome file
+                        let cdFilenameData = zipData.subdata(in: (cdOffset + 46)..<(cdOffset + 46 + cdFilenameLen))
+                        guard let cdFilename = String(data: cdFilenameData, encoding: .utf8) else {
+                            cdOffset += 46 + cdFilenameLen + cdExtraLen + cdCommentLen
+                            continue
+                        }
+
+                        // Salta directory
+                        if cdFilename.hasSuffix("/") {
+                            cdOffset += 46 + cdFilenameLen + cdExtraLen + cdCommentLen
+                            continue
+                        }
+
+                        log("")
+                        log("📄 Central Directory entry: \(cdFilename)")
+                        log("   Compressed: \(cdCompSize) bytes, Uncompressed: \(cdUncompSize) bytes")
+                        log("   Local header at offset: \(localHeaderOffset)")
+
+                        // Ora leggi i dati dalla posizione del local header
+                        if localHeaderOffset >= 0 && localHeaderOffset < zipData.count {
+                            // Salta il local header per arrivare ai dati
+                            let lfhFilenameLen = zipData.withUnsafeBytes { buffer in
+                                Int(buffer.loadUnaligned(fromByteOffset: localHeaderOffset + 26, as: UInt16.self))
+                            }
+
+                            let lfhExtraLen = zipData.withUnsafeBytes { buffer in
+                                Int(buffer.loadUnaligned(fromByteOffset: localHeaderOffset + 28, as: UInt16.self))
+                            }
+
+                            let dataOffset = localHeaderOffset + 30 + lfhFilenameLen + lfhExtraLen
+                            let dataEnd = dataOffset + cdCompSize
+
+                            if dataEnd <= zipData.count && cdCompSize > 0 {
+                                let compData = zipData.subdata(in: dataOffset..<dataEnd)
+
+                                var decompData: Data?
+                                if cdCompMethod == 8 {
+                                    log("🔄 Decompressing with DEFLATE...")
+                                    decompData = decompressData(compData)
+                                } else if cdCompMethod == 0 {
+                                    log("📋 File stored without compression")
+                                    decompData = compData
+                                }
+
+                                if let data = decompData {
+                                    log("✅ Decompressed to \(data.count) bytes")
+
+                                    if let content = tryDecodeString(from: data, log: log) {
+                                        extractedContents[cdFilename] = content
+                                        log("✅ Successfully loaded \(cdFilename) from Central Directory!")
+
+                                        // Rimuovi da failedFiles
+                                        if let index = failedFiles.firstIndex(where: { $0.0 == cdFilename }) {
+                                            failedFiles.remove(at: index)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        cdOffset += 46 + cdFilenameLen + cdExtraLen + cdCommentLen
+                    } else {
+                        break
+                    }
+                }
+            } else {
+                log("❌ Could not find End of Central Directory")
+            }
+        }
 
         if !failedFiles.isEmpty {
             log("⚠️  Failed to load \(failedFiles.count) file(s):")
