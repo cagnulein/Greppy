@@ -185,33 +185,36 @@ struct ContentView: View {
                     }
                 TabView(selection: $selectedTabIndex) {
                     ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
-                             List {
-                                 
-                                 ForEach(textRows(for: searchTerm), id: \.id) { row in
-                                    VStack {
-                                        HStack {
-                                            if(UserDefaults.standard.bool(forKey: "lineNumber")) {
-                                                Text("\(row.lineNumber).").font(.system(size: textSize()))
-                                            }
-                                            Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
-                                                .background(row.text == messageMaxLine ? Color.red : Color.clear)
-                                                .font(.system(size: textSize()))
-                                                .onTapGesture {
-                                                    if(showingEditor) {
-                                                        showingEditor = false
-                                                    } else {
-                                                        self.selectedText = row.text
-                                                        self.showingEditor = true
-                                                    }
-                                                }.frame(maxWidth: .infinity, alignment: .leading)
-                                        }
-                                        if(fileContent.keys.count > 1 && !row.file.isEmpty) {
-                                            Text("from: \(row.file):\(row.lineNumber)").font(.system(size: textSize() - 2)).italic()
-                                                .foregroundColor(.gray).frame(maxWidth: .infinity, alignment: .trailing)
-                                        }
+                        let rows = textRows(for: searchTerm)
+                        let uniqueFiles = Set(rows.map { $0.file }).count
 
+                        List {
+
+                             ForEach(rows, id: \.id) { row in
+                                VStack {
+                                    HStack {
+                                        if(UserDefaults.standard.bool(forKey: "lineNumber")) {
+                                            Text("\(row.lineNumber).").font(.system(size: textSize()))
+                                        }
+                                        Text(makeAttributedString(fullText: row.text, highlight: searchTerm, isCaseSensitive: UserDefaults.standard.bool(forKey: "caseSensitiveSearch")))
+                                            .background(row.text == messageMaxLine ? Color.red : Color.clear)
+                                            .font(.system(size: textSize()))
+                                            .onTapGesture {
+                                                if(showingEditor) {
+                                                    showingEditor = false
+                                                } else {
+                                                    self.selectedText = row.text
+                                                    self.showingEditor = true
+                                                }
+                                            }.frame(maxWidth: .infinity, alignment: .leading)
                                     }
+                                    if(uniqueFiles > 1 && !row.file.isEmpty) {
+                                        Text("from: \(row.file):\(row.lineNumber)").font(.system(size: textSize() - 2)).italic()
+                                            .foregroundColor(.gray).frame(maxWidth: .infinity, alignment: .trailing)
+                                    }
+
                                 }
+                            }
                             }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
                                 .onOpenURL(perform: { url in
                                     print("openUrl \(url)")
@@ -1058,19 +1061,21 @@ class FileHelper {
             }
         }
 
-        // Add debug log as a special file in the app UI
-        let logContent = debugLog.joined(separator: "\n")
-        extractedContents["🔍 Debug Log.txt"] = """
-        DEBUG LOG - ZIP EXTRACTION
-        ==========================
-        File: \(zipURL.lastPathComponent)
-        Date: \(Date())
+        // Add debug log only if there were errors
+        if !failedFiles.isEmpty {
+            let logContent = debugLog.joined(separator: "\n")
+            extractedContents["🔍 Debug Log.txt"] = """
+            DEBUG LOG - ZIP EXTRACTION
+            ==========================
+            File: \(zipURL.lastPathComponent)
+            Date: \(Date())
 
-        \(logContent)
+            \(logContent)
 
-        ==========================
-        END OF LOG
-        """
+            ==========================
+            END OF LOG
+            """
+        }
 
         return extractedContents
     }
