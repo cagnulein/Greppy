@@ -775,6 +775,11 @@ class FileHelper {
                     Int(buffer.loadUnaligned(fromByteOffset: offset + 18, as: UInt32.self))
                 }
 
+                // Offset 22-26: dimensione non compressa (4 byte)
+                let uncompressedSize = zipData.withUnsafeBytes { buffer in
+                    Int(buffer.loadUnaligned(fromByteOffset: offset + 22, as: UInt32.self))
+                }
+
                 // Offset 8-10: metodo compressione (2 byte) - 0=stored, 8=deflated
                 let compressionMethod = zipData.withUnsafeBytes { buffer in
                     Int(buffer.loadUnaligned(fromByteOffset: offset + 8, as: UInt16.self))
@@ -789,7 +794,10 @@ class FileHelper {
                     continue
                 }
 
-                print("📁 Found: \(filename) (compression: \(compressionMethod), size: \(compressedSize))")
+                print("📁 Found: \(filename)")
+                print("   Compression method: \(compressionMethod) (0=stored, 8=DEFLATE)")
+                print("   Compressed size: \(compressedSize) bytes")
+                print("   Uncompressed size: \(uncompressedSize) bytes")
 
                 // Track all files found
                 allFilesFound.append(filename)
@@ -815,7 +823,28 @@ class FileHelper {
                         print("🔄 Decompressing with DEFLATE...")
                         decompressedData = decompressData(compressedData)
                         if let data = decompressedData {
-                            print("✅ Decompressed to \(data.count) bytes")
+                            print("✅ Decompressed to \(data.count) bytes (expected \(uncompressedSize))")
+
+                            // Show hex dump of first 32 bytes
+                            let previewLength = min(32, data.count)
+                            let previewBytes = data.prefix(previewLength).map { String(format: "%02X", $0) }.joined(separator: " ")
+                            print("   First \(previewLength) bytes (hex): \(previewBytes)")
+
+                            // Try to show as ASCII for quick check
+                            let asciiPreview = data.prefix(previewLength).map { byte -> String in
+                                if byte >= 32 && byte <= 126 {
+                                    return String(UnicodeScalar(byte))
+                                } else if byte == 10 {
+                                    return "\\n"
+                                } else if byte == 13 {
+                                    return "\\r"
+                                } else if byte == 9 {
+                                    return "\\t"
+                                } else {
+                                    return "·"
+                                }
+                            }.joined()
+                            print("   First \(previewLength) bytes (ASCII): \(asciiPreview)")
                         } else {
                             print("❌ DEFLATE decompression failed")
                             failedFiles.append((filename, "DEFLATE decompression failed"))
@@ -824,18 +853,25 @@ class FileHelper {
                         // Stored (no compression)
                         print("📋 File stored without compression")
                         decompressedData = compressedData
+
+                        // Show hex dump of first 32 bytes
+                        let previewLength = min(32, compressedData.count)
+                        let previewBytes = compressedData.prefix(previewLength).map { String(format: "%02X", $0) }.joined(separator: " ")
+                        print("   First \(previewLength) bytes (hex): \(previewBytes)")
                     } else {
                         print("⚠️  Unsupported compression method: \(compressionMethod)")
                         failedFiles.append((filename, "Unsupported compression method \(compressionMethod)"))
                     }
 
                     if let data = decompressedData {
+                        print("🔤 Attempting to decode \(data.count) bytes as text...")
                         // Prova a convertire in stringa usando vari encoding
                         if let content = tryDecodeString(from: data) {
                             extractedContents[filename] = content
                             print("✅ Successfully loaded \(filename) (\(content.count) chars)")
                         } else {
-                            print("⚠️  Cannot decode \(filename) as text (data size: \(data.count) bytes)")
+                            print("❌ Cannot decode \(filename) as text (data size: \(data.count) bytes)")
+                            print("   This is probably a binary file, not a text file")
                             failedFiles.append((filename, "Cannot decode as text (probably binary file)"))
                         }
                     }
@@ -931,19 +967,17 @@ class FileHelper {
             .utf32LittleEndian
         ]
 
-        print("🔤 Attempting to decode \(data.count) bytes as text...")
-
         for encoding in encodings {
             if let string = String(data: data, encoding: encoding) {
                 // Don't check isEmpty - some files might be legitimately empty
                 if string.count > 0 {
-                    print("✅ Successfully decoded with encoding: \(encoding)")
+                    print("   ✅ Decoded successfully with encoding: \(encoding)")
                     return string
                 }
             }
         }
 
-        print("❌ Failed to decode data with any encoding")
+        print("   ❌ Failed with all \(encodings.count) encodings")
         return nil
     }
 }
