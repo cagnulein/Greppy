@@ -217,21 +217,24 @@ struct ContentView: View {
                                     print("openUrl \(url)")
                                     let currentTime = Date()
                                     let selectionInterval: TimeInterval = 5.0 // intervallo di tempo per considerare una selezione come unica (in secondi)
-                                    
+
                                     if let lastSelectionDate = lastSelectionDate, currentTime.timeIntervalSince(lastSelectionDate) < selectionInterval {
 
                                     } else {
                                         // Nuova selezione
                                         fileContent.removeAll()
                                     }
-                                    
+
                                     lastSelectionDate = currentTime
-                                    
+
                                     DispatchQueue.global(qos: .userInitiated).async {
                                         let loadedContent = loadFileContent(from: url)
-                                        
+
                                         DispatchQueue.main.async {
-                                            fileContent[url.lastPathComponent] =  loadedContent
+                                            // loadedContent è ora un dictionary che può contenere più file
+                                            for (filename, content) in loadedContent {
+                                                fileContent[filename] = content
+                                            }
                                         }
                                     }
                                 }).tabItem {
@@ -495,17 +498,69 @@ struct ContentView: View {
         return result
     }
 
-    func loadFileContent(from url: URL) -> String {
+    func loadFileContent(from url: URL) -> [String: String] {
         bookmarkedLines = []
         searchTabs.removeAll()
         addNewSearchTab(searchText: "")
-        // Assumi che questa funzione legga il contenuto del file e lo ritorni come String
+
+        var result: [String: String] = [:]
+
         do {
-            return try FileHelper.readWithMultipleEncodings(from: url)
+            // Controlla se è un file ZIP usando estensione e magic bytes
+            let isZip = url.pathExtension.lowercased() == "zip" || FileHelper.isZipFile(url)
+
+            if isZip {
+                print("📦 Detected ZIP file, extracting...")
+                // Estrai e leggi i file dallo ZIP
+                let extractedFiles = try FileHelper.extractAndReadZip(from: url)
+                print("📦 Extracted \(extractedFiles.count) files from ZIP")
+
+                if extractedFiles.isEmpty {
+                    // Mostra un messaggio visibile nell'UI
+                    result["⚠️ \(url.lastPathComponent)"] = """
+                    ⚠️ NESSUN FILE DI TESTO TROVATO NELLO ZIP
+
+                    Nome file: \(url.lastPathComponent)
+                    Lo ZIP è stato letto ma non contiene file di testo leggibili.
+
+                    Possibili cause:
+                    - Lo ZIP contiene solo file binari (immagini, eseguibili, ecc.)
+                    - I file sono in un formato non testuale
+                    - Errore durante la decompressione
+
+                    Controlla i log della console per dettagli.
+                    """
+                } else {
+                    for (filename, content) in extractedFiles {
+                        let displayName = "\(url.lastPathComponent)/\(filename)"
+                        result[displayName] = content
+                        print("📄 Loaded: \(displayName) (\(content.count) chars)")
+                    }
+                }
+            } else {
+                print("📄 Loading text file...")
+                // Leggi come file di testo normale
+                let content = try FileHelper.readWithMultipleEncodings(from: url)
+                result[url.lastPathComponent] = content
+                print("📄 Loaded: \(url.lastPathComponent) (\(content.count) chars)")
+            }
         } catch {
-            print("Errore nella lettura del file: \(error)")
-            return "Errore nella lettura del file \(error.localizedDescription)"
+            print("❌ Error loading file: \(error)")
+            result["❌ ERROR: \(url.lastPathComponent)"] = """
+            ❌ ERRORE DURANTE L'APERTURA DEL FILE
+
+            Nome file: \(url.lastPathComponent)
+            Errore: \(error.localizedDescription)
+
+            Dettagli tecnici:
+            \(error)
+
+            Se è un file ZIP, controlla che non sia corrotto.
+            Se è un file di testo, controlla l'encoding.
+            """
         }
+
+        return result
     }         
 }
 
@@ -533,8 +588,11 @@ struct DocumentPicker: UIViewControllerRepresentable {
         }
 
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            print("📂 DocumentPicker: Selected \(urls.count) file(s)")
             var fC: [String: String] = [:]
+
             for url in urls {
+                print("📄 Processing: \(url.lastPathComponent)")
                 let canAccess = url.startAccessingSecurityScopedResource()
                 defer {
                     if canAccess {
@@ -545,27 +603,66 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 do {
                     // Controlla se è un file ZIP usando sia estensione che magic bytes
                     let isZip = url.pathExtension.lowercased() == "zip" || FileHelper.isZipFile(url)
+                    print("🔍 isZip: \(isZip) (extension: \(url.pathExtension))")
 
                     if isZip {
+                        print("📦 Processing as ZIP file...")
                         // Decomprime lo ZIP e leggi tutti i file di testo
                         let extractedFiles = try FileHelper.extractAndReadZip(from: url)
-                        for (filename, content) in extractedFiles {
-                            // Usa il nome del file con il formato "archive.zip/file.txt"
-                            let displayName = "\(url.lastPathComponent)/\(filename)"
-                            fC[displayName] = content
+                        print("📦 Extracted \(extractedFiles.count) files from ZIP")
+
+                        if extractedFiles.isEmpty {
+                            // Mostra un messaggio visibile nell'UI
+                            fC["⚠️ \(url.lastPathComponent)"] = """
+                            ⚠️ NESSUN FILE DI TESTO TROVATO NELLO ZIP
+
+                            Nome file: \(url.lastPathComponent)
+                            Lo ZIP è stato letto ma non contiene file di testo leggibili.
+
+                            Possibili cause:
+                            - Lo ZIP contiene solo file binari (immagini, eseguibili, ecc.)
+                            - I file sono in un formato non testuale
+                            - Errore durante la decompressione
+
+                            Controlla i log della console per dettagli.
+                            """
+                        } else {
+                            for (filename, content) in extractedFiles {
+                                // Usa il nome del file con il formato "archive.zip/file.txt"
+                                let displayName = "\(url.lastPathComponent)/\(filename)"
+                                fC[displayName] = content
+                                print("✅ Added to fileContent: \(displayName)")
+                            }
                         }
                     } else {
+                        print("📄 Processing as text file...")
                         // Leggi il contenuto del file selezionato
                         let fileContent = try FileHelper.readWithMultipleEncodings(from: url)
                         fC[url.lastPathComponent] = fileContent
+                        print("✅ Loaded: \(url.lastPathComponent) (\(fileContent.count) chars)")
                     }
                 } catch {
-                    print("Unable to read file content: \(error)")
+                    print("❌ Unable to read file content: \(error)")
+                    // Mostra l'errore nell'UI
+                    fC["❌ ERROR: \(url.lastPathComponent)"] = """
+                    ❌ ERRORE DURANTE L'APERTURA DEL FILE
+
+                    Nome file: \(url.lastPathComponent)
+                    Errore: \(error.localizedDescription)
+
+                    Dettagli tecnici:
+                    \(error)
+
+                    Se è un file ZIP, controlla che non sia corrotto.
+                    Se è un file di testo, controlla l'encoding.
+                    """
                 }
 
-                //print(fC)
+                print("📊 Total files in dictionary: \(fC.count)")
                 DispatchQueue.main.async {
+                    print("🔄 Updating parent.fileContent on main thread")
                     self.parent.fileContent = fC
+                    print("✅ parent.fileContent updated with \(fC.count) files")
                 }
             }
         }
@@ -641,12 +738,16 @@ class FileHelper {
     public static func extractAndReadZip(from zipURL: URL) throws -> [String: String] {
         var extractedContents: [String: String] = [:]
 
+        print("🔍 Starting ZIP extraction from: \(zipURL.lastPathComponent)")
+
         // Leggi il file ZIP come dati binari
         let zipData = try Data(contentsOf: zipURL)
+        print("📊 ZIP file size: \(zipData.count) bytes")
 
         // Cerca i local file headers nel file ZIP
         let localFileHeaderSignature: UInt32 = 0x04034b50
         var offset = 0
+        var filesFound = 0
 
         while offset < zipData.count - 30 {
             // Leggi la signature a 4 byte
@@ -655,6 +756,7 @@ class FileHelper {
             }
 
             if signature == localFileHeaderSignature {
+                filesFound += 1
                 // Abbiamo trovato un local file header
                 // Offset 26-28: lunghezza nome file (2 byte)
                 let filenameLength = zipData.withUnsafeBytes { buffer in
@@ -680,12 +782,16 @@ class FileHelper {
                 let filenameStart = offset + 30
                 let filenameData = zipData.subdata(in: filenameStart..<(filenameStart + filenameLength))
                 guard let filename = String(data: filenameData, encoding: .utf8) else {
+                    print("⚠️  Cannot decode filename at offset \(offset)")
                     offset += 30 + filenameLength + extraFieldLength + compressedSize
                     continue
                 }
 
+                print("📁 Found: \(filename) (compression: \(compressionMethod), size: \(compressedSize))")
+
                 // Salta i file directory (terminano con /)
                 if filename.hasSuffix("/") {
+                    print("📂 Skipping directory: \(filename)")
                     offset += 30 + filenameLength + extraFieldLength + compressedSize
                     continue
                 }
@@ -701,18 +807,32 @@ class FileHelper {
 
                     if compressionMethod == 8 {
                         // DEFLATE compression
+                        print("🔄 Decompressing with DEFLATE...")
                         decompressedData = decompressData(compressedData)
+                        if let data = decompressedData {
+                            print("✅ Decompressed to \(data.count) bytes")
+                        } else {
+                            print("❌ DEFLATE decompression failed")
+                        }
                     } else if compressionMethod == 0 {
                         // Stored (no compression)
+                        print("📋 File stored without compression")
                         decompressedData = compressedData
+                    } else {
+                        print("⚠️  Unsupported compression method: \(compressionMethod)")
                     }
 
                     if let data = decompressedData {
                         // Prova a convertire in stringa usando vari encoding
                         if let content = tryDecodeString(from: data), !content.isEmpty {
                             extractedContents[filename] = content
+                            print("✅ Successfully loaded \(filename) (\(content.count) chars)")
+                        } else {
+                            print("⚠️  Cannot decode \(filename) as text")
                         }
                     }
+                } else {
+                    print("❌ Data range out of bounds for \(filename)")
                 }
 
                 offset += 30 + filenameLength + extraFieldLength + compressedSize
@@ -721,6 +841,7 @@ class FileHelper {
             }
         }
 
+        print("🎉 ZIP extraction complete: \(filesFound) files found, \(extractedContents.count) text files loaded")
         return extractedContents
     }
 
