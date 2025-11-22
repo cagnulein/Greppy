@@ -543,8 +543,10 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 }
 
                 do {
-                    // Controlla se è un file ZIP
-                    if url.pathExtension.lowercased() == "zip" {
+                    // Controlla se è un file ZIP usando sia estensione che magic bytes
+                    let isZip = url.pathExtension.lowercased() == "zip" || FileHelper.isZipFile(url)
+
+                    if isZip {
                         // Decomprime lo ZIP e leggi tutti i file di testo
                         let extractedFiles = try FileHelper.extractAndReadZip(from: url)
                         for (filename, content) in extractedFiles {
@@ -571,6 +573,26 @@ struct DocumentPicker: UIViewControllerRepresentable {
 }
 
 class FileHelper {
+    // Controlla se un file è un ZIP usando i magic bytes (signature)
+    public static func isZipFile(_ url: URL) -> Bool {
+        do {
+            let handle = try FileHandle(forReadingFrom: url)
+            defer { try? handle.close() }
+
+            // Leggi i primi 4 byte per controllare la signature ZIP
+            let data = handle.readData(ofLength: 4)
+
+            // ZIP signature: 0x50 0x4B 0x03 0x04 ("PK\x03\x04")
+            if data.count >= 4 {
+                let bytes = [UInt8](data)
+                return bytes[0] == 0x50 && bytes[1] == 0x4B && bytes[2] == 0x03 && bytes[3] == 0x04
+            }
+        } catch {
+            print("Error checking if file is ZIP: \(error)")
+        }
+        return false
+    }
+
     public static func readWithMultipleEncodings(from fileURL: URL) throws -> String {
         let encodings: [String.Encoding] = [
             .ascii,
