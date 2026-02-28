@@ -10,6 +10,13 @@ struct ContentView_Previews: PreviewProvider {
 }
 
 struct ContentView: View {
+    struct SearchRow: Identifiable {
+        let lineNumber: Int
+        let text: String
+        let file: String
+        let id: UUID
+    }
+
     @State public var fileContent: [String: String] = ["": "To start using the app, first locate the icon positioned at the bottom left corner of your\nscreen. This icon is designed for opening files and is your gateway to accessing the documents stored\non your device. Once you tap on this icon, you will be presented with a list of\nfiles. From this list, select the file you wish to explore. Upon selection, the file will\nopen within the app, displaying its contents in a readable format. Now, to search for specific\ncontent within the opened file, direct your attention to the text box located at the top\nof the screen. This text box is your search tool. Enter the keywords or phrases you're looking\nfor, and the app will highlight and navigate you through the occurrences of the searched terms\nwithin the document. This feature allows for an efficient and effective way to find the information\nyou need without manually scouring the entire document.\n\nThe combination of these functionalities—opening files and searching within them—makes this app an invaluable tool\nfor anyone who needs to work with text documents efficiently. Whether you are a student, a professional,\nor just someone who handles a lot of documents, this app simplifies the process of finding the exact\ninformation you need, when you need it.\n"]
     @State private var searchText: String = ""
     @State private var searchResults: String = ""
@@ -29,18 +36,35 @@ struct ContentView: View {
     @State private var isEditing: Bool = false
     @State private var showSaveDocumentPicker = false
     @State private var lastSelectionDate: Date?
+    @StateObject private var rowsCache = RowsCache()
     
-    func textRows(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
-        var allRows = submittedText.isEmpty || isEditing  // isEditing to speed up the keyboard
-        ?  filteredContent(for: "")
-            : filteredContent(for: submittedText)
-        
-        if(allRows.count > maxLine()) {
-            allRows = Array(allRows.prefix(maxLine()))
-            allRows.append((lineNumber: -1, text: messageMaxLine, file: fileContent.first?.key ?? "", id: UUID()))
+    func textRows(for submittedText: String) -> [SearchRow] {
+        let cacheKey = [
+            submittedText,
+            String(UserDefaults.standard.bool(forKey: "reverse")),
+            String(UserDefaults.standard.integer(forKey: "linesBefore")),
+            String(UserDefaults.standard.integer(forKey: "linesAfter")),
+            String(UserDefaults.standard.integer(forKey: "maxLines")),
+            String(UserDefaults.standard.bool(forKey: "caseSensitiveSearch")),
+            String(UserDefaults.standard.bool(forKey: "inverted")),
+            String(UserDefaults.standard.bool(forKey: "regEx")),
+            fileFingerprint(),
+            bookmarkFingerprint()
+        ].joined(separator: "|")
+
+        return rowsCache.rows(for: cacheKey) {
+            filteredContent(for: submittedText)
         }
-        
-        return allRows
+    }
+
+    private func fileFingerprint() -> String {
+        let sortedEntries = fileContent.sorted { $0.key < $1.key }
+        let totalChars = sortedEntries.reduce(0) { $0 + $1.value.count }
+        return "\(sortedEntries.count)-\(totalChars)-\(sortedEntries.map { $0.key }.joined(separator: ",").hashValue)"
+    }
+
+    private func bookmarkFingerprint() -> String {
+        bookmarkedLines.sorted().joined(separator: "\n").hashValue.description
     }
 
     func fileGrepped(for submittedText: String) -> String {
@@ -187,7 +211,11 @@ struct ContentView: View {
                     ForEach(Array(searchTabs.enumerated()), id: \.element) { index, searchTerm in
                         let rows = textRows(for: searchTerm)
                         let uniqueFiles = Set(rows.map { $0.file }).count
+                        let sourceFile = rows.first(where: { !$0.file.isEmpty })?.file ?? ""
+                        let totalSourceLines = fileContent[sourceFile]?.components(separatedBy: "\n").count ?? 0
+                        let matchedLineNumbers = Set(rows.filter { $0.lineNumber > 0 && $0.text != messageMaxLine }.map { $0.lineNumber })
 
+                        HStack(spacing: 8) {
                         List {
 
                              ForEach(rows, id: \.id) { row in
@@ -216,6 +244,11 @@ struct ContentView: View {
                                 }
                             }
                             }.frame(maxHeight: .infinity) // Assicura che la ScrollView utilizzi lo spazio disponibile
+
+                            if uniqueFiles == 1 && !searchTerm.isEmpty && totalSourceLines > 0 {
+                                MiniMapView(totalLines: totalSourceLines, highlightedLines: matchedLineNumbers)
+                            }
+                        }
                                 .onOpenURL(perform: { url in
                                     print("openUrl \(url)")
                                     let currentTime = Date()
@@ -238,6 +271,7 @@ struct ContentView: View {
                                             for (filename, content) in loadedContent {
                                                 fileContent[filename] = content
                                             }
+                                            rowsCache.clear()
                                         }
                                     }
                                 }).tabItem {
@@ -409,6 +443,7 @@ struct ContentView: View {
         submittedText = searchText // Aggiorna `submittedText` con il valore attuale di `searchText`
         // Aggiungi qui ulteriori azioni che desideri eseguire dopo la sottomissione
         addNewSearchTab(searchText: searchText)
+        rowsCache.clear()
     }
     
     func addNewSearchTab(searchText: String) {
@@ -420,7 +455,7 @@ struct ContentView: View {
         //print("selectedTabIndex \(selectedTabIndex)")
     }
 
-    private func filteredContent(for submittedText: String) -> [(lineNumber: Int, text: String, file: String, id: UUID)] {
+    private func filteredContent(for submittedText: String) -> [SearchRow] {
         let isReverse = UserDefaults.standard.bool(forKey: "reverse")
         let linesBefore = UserDefaults.standard.integer(forKey: "linesBefore")
         let linesAfter = UserDefaults.standard.integer(forKey: "linesAfter")
@@ -438,9 +473,9 @@ struct ContentView: View {
 
         let bookmarkedSet = Set(bookmarkedLines)
 
-        let filteredLines = fileContent.flatMap { (key, value) -> [(lineNumber: Int, text: String, file: String, id: UUID)] in
+        let filteredLines = fileContent.flatMap { (key, value) -> [SearchRow] in
             let lines = value.components(separatedBy: "\n")
-            var result: [(lineNumber: Int, text: String, file: String, id: UUID)] = []
+            var result: [SearchRow] = []
             var matchIndices: [Int] = []
 
             // Trova tutti i match
@@ -471,12 +506,12 @@ struct ContentView: View {
 
                 for index in startIndex...endIndex {
                     let line = lines[index]
-                    result.append((lineNumber: index + 1, text: line, file: key, id: UUID()))
+                    result.append(SearchRow(lineNumber: index + 1, text: line, file: key, id: UUID()))
                 }
             }
 
             // Rimuovi i duplicati mantenendo l'ordine
-            var uniqueResult: [(lineNumber: Int, text: String, file: String, id: UUID)] = []
+            var uniqueResult: [SearchRow] = []
             var seenLineNumbers = Set<Int>()
             for item in result {
                 if !seenLineNumbers.contains(item.lineNumber) {
@@ -488,14 +523,11 @@ struct ContentView: View {
             return uniqueResult
         }
 
-        var result = Array(filteredLines.prefix(maxLine()))
+        let orderedResults = isReverse ? Array(filteredLines.reversed()) : filteredLines
+        var result = Array(orderedResults.prefix(maxLine()))
 
-        if result.count >= maxLine() {
-            result.append((lineNumber: -1, text: messageMaxLine, file: "", id: UUID()))
-        }
-
-        if isReverse {
-            result.reverse()
+        if orderedResults.count > maxLine() {
+            result.append(SearchRow(lineNumber: -1, text: messageMaxLine, file: "", id: UUID()))
         }
 
         return result
@@ -505,6 +537,7 @@ struct ContentView: View {
         bookmarkedLines = []
         searchTabs.removeAll()
         addNewSearchTab(searchText: "")
+        rowsCache.clear()
 
         var result: [String: String] = [:]
 
@@ -565,6 +598,53 @@ struct ContentView: View {
 
         return result
     }         
+}
+
+final class RowsCache: ObservableObject {
+    private var storage: [String: [ContentView.SearchRow]] = [:]
+
+    func rows(for key: String, compute: () -> [ContentView.SearchRow]) -> [ContentView.SearchRow] {
+        if let cached = storage[key] {
+            return cached
+        }
+
+        let generated = compute()
+        storage[key] = generated
+        return generated
+    }
+
+    func clear() {
+        storage.removeAll()
+    }
+}
+
+struct MiniMapView: View {
+    let totalLines: Int
+    let highlightedLines: Set<Int>
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.15))
+
+                ForEach(Array(highlightedLines).sorted(), id: \.self) { lineNumber in
+                    Rectangle()
+                        .fill(Color.orange.opacity(0.9))
+                        .frame(height: 2)
+                        .offset(y: yPosition(for: lineNumber, height: geometry.size.height))
+                }
+            }
+        }
+        .frame(width: 10)
+        .padding(.vertical, 6)
+    }
+
+    private func yPosition(for lineNumber: Int, height: CGFloat) -> CGFloat {
+        guard totalLines > 1 else { return 0 }
+        let normalized = CGFloat(lineNumber - 1) / CGFloat(totalLines - 1)
+        return max(0, min(height - 2, normalized * height))
+    }
 }
 
 struct DocumentPicker: UIViewControllerRepresentable {
