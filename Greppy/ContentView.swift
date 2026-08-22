@@ -542,7 +542,7 @@ struct ContentView: View {
                 }
             } else {
                 print("📄 Loading text file...")
-                // Leggi come file di testo normale
+                // Leggi come file di testo normale (GZIP viene gestito trasparentemente da FileHelper)
                 let content = try FileHelper.readWithMultipleEncodings(from: url)
                 result[url.lastPathComponent] = content
                 print("📄 Loaded: \(url.lastPathComponent) (\(content.count) chars)")
@@ -558,7 +558,7 @@ struct ContentView: View {
             Technical details:
             \(error)
 
-            If this is a ZIP file, check that it's not corrupted.
+            If this is a ZIP or GZIP file, check that it's not corrupted.
             If this is a text file, check the encoding.
             """
         }
@@ -639,7 +639,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
                         }
                     } else {
                         print("📄 Processing as text file...")
-                        // Leggi il contenuto del file selezionato
+                        // Leggi il contenuto del file selezionato (GZIP viene gestito trasparentemente da FileHelper)
                         let fileContent = try FileHelper.readWithMultipleEncodings(from: url)
                         fC[url.lastPathComponent] = fileContent
                         print("✅ Loaded: \(url.lastPathComponent) (\(fileContent.count) chars)")
@@ -656,7 +656,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
                     Technical details:
                     \(error)
 
-                    If this is a ZIP file, check that it's not corrupted.
+                    If this is a ZIP or GZIP file, check that it's not corrupted.
                     If this is a text file, check the encoding.
                     """
                 }
@@ -693,7 +693,50 @@ class FileHelper {
         return false
     }
 
+    // Controlla se un file è GZIP usando i magic bytes 0x1F 0x8B.
+    public static func isGzipFile(_ url: URL) -> Bool {
+        do {
+            let handle = try FileHandle(forReadingFrom: url)
+            defer { try? handle.close() }
+
+            let data = handle.readData(ofLength: 2)
+            if data.count >= 2 {
+                let bytes = [UInt8](data)
+                return bytes[0] == 0x1F && bytes[1] == 0x8B
+            }
+        } catch {
+            print("Error checking if file is GZIP: \(error)")
+        }
+        return false
+    }
+
     public static func readWithMultipleEncodings(from fileURL: URL) throws -> String {
+        // A .gz file contains a single compressed stream. Decompress it first, then
+        // feed the resulting bytes through the same encoding detection used for text files.
+        if fileURL.pathExtension.lowercased() == "gz" || isGzipFile(fileURL) {
+            print("📦 Detected GZIP file, decompressing...")
+            let compressedData = try Data(contentsOf: fileURL)
+
+            guard let decompressedData = decompressGzipData(compressedData) else {
+                throw NSError(
+                    domain: "GzipError",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Unable to decompress GZIP file."]
+                )
+            }
+
+            guard let fileContent = tryDecodeString(from: decompressedData) else {
+                throw NSError(
+                    domain: "EncodingError",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "Unable to decode decompressed GZIP content as text."]
+                )
+            }
+
+            print("✅ GZIP decompressed to \(decompressedData.count) bytes")
+            return fileContent
+        }
+
         let encodings: [String.Encoding] = [
             .ascii,
             .nextstep,
@@ -1120,6 +1163,57 @@ class FileHelper {
         }
 
         return decompressedData.isEmpty ? nil : decompressedData
+    }
+
+    private static func decompressGzipData(_ data: Data) -> Data? {
+        let bufferSize = 64 * 1024
+        var decompressedData = Data()
+        var succeeded = false
+
+        data.withUnsafeBytes { (inputPointer: UnsafeRawBufferPointer) in
+            guard let baseAddress = inputPointer.baseAddress else { return }
+
+            var stream = z_stream()
+            stream.next_in = UnsafeMutablePointer<UInt8>(mutating: baseAddress.assumingMemoryBound(to: UInt8.self))
+            stream.avail_in = uint(data.count)
+
+            // MAX_WBITS + 16 tells zlib to decode a gzip wrapper/header/trailer.
+            guard inflateInit2_(&stream, MAX_WBITS + 16, ZLIB_VERSION, Int32(MemoryLayout<z_stream>.size)) == Z_OK else {
+                return
+            }
+            defer { inflateEnd(&stream) }
+
+            var buffer = [UInt8](repeating: 0, count: bufferSize)
+
+            while true {
+                let status = buffer.withUnsafeMutableBytes { bufferPointer -> Int32 in
+                    stream.next_out = bufferPointer.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                    stream.avail_out = uint(bufferSize)
+                    return inflate(&stream, Z_NO_FLUSH)
+                }
+
+                let bytesWritten = bufferSize - Int(stream.avail_out)
+                if bytesWritten > 0 {
+                    decompressedData.append(buffer, count: bytesWritten)
+                }
+
+                if status == Z_STREAM_END {
+                    succeeded = true
+                    break
+                }
+
+                if status != Z_OK {
+                    break
+                }
+
+                // Avoid looping forever on malformed/truncated streams.
+                if stream.avail_in == 0 && bytesWritten == 0 {
+                    break
+                }
+            }
+        }
+
+        return succeeded ? decompressedData : nil
     }
 
     private static func tryDecodeString(from data: Data, log: ((String) -> Void)? = nil) -> String? {
